@@ -13,7 +13,7 @@ group_df = pd.read_csv("Assignment1_Problem1_Datasheets_Group_26.csv", sep=";")
 # print(group_df)
 
 '''
-# Make function of haversine for calculating great circle distance between two points
+# Make function of haversine for calculating great circle distance between two points.
 '''
 
 
