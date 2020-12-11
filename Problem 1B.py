@@ -3,7 +3,12 @@ import pandas as pd
 import numpy as np
 
 
-# Data
+"""
+=============================================================================
+Setup parameters and demand/distance matrix:
+=============================================================================
+"""
+
 Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 'Munich', 
             'Rome', 'Dublin', 'Stockholm', 'Lisbon', 'Berlin', 'Helsinki', 'Warsaw', 'Edinburgh', 'Bucharest', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
@@ -36,7 +41,7 @@ distance = np.array(data)
 
 """
 =============================================================================
-AObjective function: max revenue
+Objective function: max revenue
 =============================================================================
 """
 # Start modelling optimization problem
@@ -69,7 +74,7 @@ m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*z[i,j] for i in airports) 
 
 
 m.update()
-# m.write('test.lp')
+m.write('test.lp')
 # Set time constraint for optimization (5minutes)
 # m.setParam('TimeLimit', 1 * 60)
 # m.setParam('MIPgap', 0.009)
