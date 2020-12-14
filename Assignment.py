@@ -116,10 +116,11 @@ for i in range(latitudes.size):
 '''
 # 1.A.3: Future demand with calibrated gravity model
 '''
-k = -39.4858
-b1 = 0.7679
-b2 = 0.9326
-b3 = 0.3012
+k = -13.8763
+b1 = 0.5252
+b2 = 0.6036
+b3 = -1.3273
+
 
 Demand_2020 = np.zeros(shape=(latitudes.size, latitudes.size))
 for i in range(latitudes.size):
