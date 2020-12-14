@@ -78,7 +78,7 @@ for i in range(latitudes.size):
 distance_df = pd.DataFrame(distances)
 distance_df.to_csv('distance_df')
 print(distance_df)
-# cost = 1.42
+cost = 1.42
 b3 = np.zeros(shape=(latitudes.size, latitudes.size))
 # b3 = pd.DataFrame(0, index=range(latitudes.size), columns=range(latitudes.size))
 for i in range(latitudes.size):
@@ -126,5 +126,5 @@ Demand_2020 = np.zeros(shape=(latitudes.size, latitudes.size))
 for i in range(latitudes.size):
     for j in range(latitudes.size):
         if distances[i, j] > 0:
-            Demand_2020[i, j] = np.exp(k) * ((((pop_2020[i]*pop_2020[j])**(b1)) * ((GDP_2020[i]*GDP_2020[j])**(b2)))/((1.42*distances[i, j])**(b3)))
+            Demand_2020[i, j] = np.exp(k) * ((((pop_2020[i]*pop_2020[j])**(b1)) * ((GDP_2020[i]*GDP_2020[j])**(b2)))/((distances[i, j])**(b3)))
 print(Demand_2020)
