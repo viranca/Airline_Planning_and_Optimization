@@ -13,32 +13,46 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Rome', 'Dublin', 'Stockholm', 'Lisbon', 'Berlin', 'Helsinki', 'Warsaw', 'Edinburgh', 'Bucharest', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
+Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
+            "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
+            "3": {"sp": 850, "s": 150, "TAT": 45, "range": 6300,  "runway": 1800},
+            "4": {"sp": 870, "s": 320, "TAT": 60, "range": 12000, "runway": 2600}}
+
 
 airports = range(len(Airports))
-CASK = 0.12
-LF = 0.75
-s = 120
-sp = 870
-LTO = 20/60
-BT = 10
-AC = 2
-y = 0.18  # yield
+CASK = 0.12       #unit operation cost per ASK flown
+LF = 0.8          #average load factor
+s = 120           #number of seats per aicraft
+sp = 870          #speed of aicraft
+LTO = 20/60       #same as turn around time
+BT = 10*7         #times 7 for weekly times the number of aircraft
+AC = 4            #number of aircraft types
+y = 0.18          #yield
 
+"""
+=============================================================================
+demand, distance and yield for every flight leg:
+=============================================================================
+"""
 with open('q_placeholder.csv', 'r') as f:
-    df = pd.read_csv(f, sep=';', header=0)
-    data = df
+    df_demand = pd.read_csv(f, sep=';', header=0)
+q = np.array(df_demand)
 
-q = np.array(data)
-
-
-#%%   
-#change this
-distance = np.array(data)
-#distance = [[0, 2236, 3201],
-#          [2236, 0, 3500],
-#          [3201, 3500, 0]]
+with open('distance_df.csv', 'r') as f:
+    df_distance = pd.read_csv(f, sep=',', header=0)
+distance = np.array(df_distance)
 
 
+Yield = 5.9 * (df_distance ** -0.76) + 0.043
+Yield = np.array(Yield)
+for i in range(len(Yield)):
+    for j in range(len(Yield)):
+        if i == j:
+            Yield[i][j] = 0
+            
+
+    
+#%%
 """
 =============================================================================
 Objective function: max revenue
@@ -50,7 +64,7 @@ x = {}
 z = {}
 for i in airports:
     for j in airports:
-        x[i,j] = m.addVar(obj = y*distance[i][j],lb=0,
+        x[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
                            vtype=GRB.INTEGER)
         z[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
                            vtype=GRB.INTEGER)
@@ -71,6 +85,9 @@ for i in airports:
 
 m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*z[i,j] for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*AC) #C4
+
+
+
 
 
 m.update()
