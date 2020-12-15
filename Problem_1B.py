@@ -15,29 +15,24 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
 Aircraft  = [0,1,2,3]
-Aircraft_n = [1,1,1,2,2,3,3]
 Aircraft_leasecost  = [15000, 34000, 80000, 190000]
 Aircraft_seats = [45, 70, 150, 320]
 Aircraft_speed = [550, 820, 850, 870]
 Aircraft_TAT = [25, 35, 45, 60]
 Aircraft_range = [1500, 3300, 6300, 12000]
 
-# Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
-#             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
-#             "3": {"sp": 850, "s": 150, "TAT": 45, "range": 6300,  "runway": 1800},
-#             "4": {"sp": 870, "s": 320, "TAT": 60, "range": 12000, "runway": 2600}}
-
 
 airports = range(len(Airports))
-CASK = 0.12                                             #unit operation cost per ASK flown
-LF = 0.8                                                #average load factor
-#s = 120                                                #number of seats per aicraft
-#sp = 870                                               #speed of aicraft
-LTO = 20/60                                             #same as turn around time
-BT = 10*7                                               #times 7 for weekly times the number of aircraft
-AC = len(Aircraft_n)                                    #number of aircraft types
-#y = 0.18                                               #yield, given in matrix below
-B = 100000                                              #Budget
+#CASK = 0.12                                            #unit operation cost per ASK flown  	    (given in matrix below)
+LF = 0.8                                                #average load factor                        (given in list above)
+#s = 120                                                #number of seats per aicraft                (given in list above)  	       	      	    
+#sp = 870                                               #speed of aicraft                           (given in list above)
+#LTO = 20/60                                            #same as turn around time                   (given in list above)
+BT = 10*7                                               #Aircraft utilisation times 7 for weekly
+#AC = len(Aircraft_n)                                   #number of aircraft types                   (given by the optimization below)
+#y = 0.18                                               #yield                                      (given in matrix below)
+B = 100000                                              #Budget                                     (?)
+
 """
 =============================================================================
 demand, distance and yield for every flight leg:
@@ -194,10 +189,6 @@ for i in range(len(a_3)):
             a_3[i][j] = 0
 
 
-
-
-
-#%%
 """
 =============================================================================
 Objective function: max revenue
@@ -256,13 +247,13 @@ for i in airports:
 
 
 m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[0]+Aircraft_TAT[0])*(z_0[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4 k=0
+            GRB.LESS_EQUAL, BT*aircraft_type_0_amount) #C4 k=0
 m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1])*(z_1[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4 k=1
+            GRB.LESS_EQUAL, BT*aircraft_type_1_amount) #C4 k=1
 m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2])*(z_2[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4 k=2
+            GRB.LESS_EQUAL, BT*aircraft_type_2_amount) #C4 k=2
 m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3])*(z_3[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4 k=3
+            GRB.LESS_EQUAL, BT*aircraft_type_3_amount) #C4 k=3
 
 #constraint 5:
 for i in airports:
@@ -287,10 +278,12 @@ m.optimize()
 # m.write("testout.sol")
 status = m.status
 
-solution = []   
-for v in m.getVars():
-      solution.append([v.varName,v.x])
-print(solution)
+# solution = []   
+# for v in m.getVars():
+#       solution.append([v.varName,v.x])
+# print(solution)
+
+
 
 if status == GRB.Status.UNBOUNDED:
     print('The model cannot be solved because it is unbounded')
@@ -299,7 +292,9 @@ elif status == GRB.Status.OPTIMAL or True:
     f_objective = m.objVal
     print('***** RESULTS ******')
     print('\nObjective Function Value: \t %g' % f_objective)
-
+    print("amount of aicraft for each type: ", aircraft_type_0_amount.x, aircraft_type_1_amount.x, 
+                                             aircraft_type_2_amount.x, aircraft_type_3_amount.x)
+    
 elif status != GRB.Status.INF_OR_UNBD and status != GRB.Status.INFEASIBLE:
     print('Optimization was stopped with status %d' % status)
 
