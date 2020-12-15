@@ -18,6 +18,9 @@ Aircraft  = [0,1,2,3]
 Aircraft_n = [1,1,1,2,3,3]
 Aircraft_leasecost  = [15000, 34000, 80000, 190000]
 Aircraft_seats = [45, 70, 150, 320]
+Aircraft_speed = [550, 820, 850, 870]
+Aircraft_TAT = [25, 35, 45, 60]
+
 
 # Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
 #             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
@@ -29,9 +32,9 @@ airports = range(len(Airports))
 CASK = 0.12                                             #unit operation cost per ASK flown
 LF = 0.8                                                #average load factor
 #s = 120                                                #number of seats per aicraft
-sp = 870                                                #speed of aicraft
+#sp = 870                                               #speed of aicraft
 LTO = 20/60                                             #same as turn around time
-BT = 10*7*len(Aircraft_n)                               #times 7 for weekly times the number of aircraft
+BT = 10*7                                               #times 7 for weekly times the number of aircraft
 AC = len(Aircraft_n)                                    #number of aircraft types
 #y = 0.18                                               #yield, given in matrix below
 
@@ -165,10 +168,15 @@ m = Model('APO1B')
 x = {}
 z = {}
 C = {}
-z_0 ={}
-z_1 ={}
-z_2 ={}
-z_3 ={}
+z_0 = {}
+z_1 = {}
+z_2 = {}
+z_3 = {}
+aircraft_type_amount = {}
+
+# for i in range(4):
+#     aircraft_type_amount[i] = m.addVar(1)
+
 
 for i in airports:
     for j in airports:
@@ -184,8 +192,8 @@ for i in airports:
                            vtype=GRB.INTEGER)        
 
 
-for k in Aircraft_n:
-    C[k] = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
+for k in range(4):
+    aircraft_type_amount = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
                     vtype=GRB.INTEGER)
 
 
@@ -203,8 +211,15 @@ for i in airports:
         m.addConstr(x[i, j], GRB.LESS_EQUAL, (z_0[i,j]*Aircraft_seats[0]+z_1[i,j]*Aircraft_seats[1]+z_2[i,j]*Aircraft_seats[2]+z_3[i,j]*Aircraft_seats[3])*LF) #C2
     m.addConstr(quicksum((z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i] + z_1[j, i] + z_2[j, i] + z_3[j, i]) for j in airports)) #C3
 
-m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*(z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4
+
+m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[0]+Aircraft_TAT[0])*(z_0[i,j]) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*AC) #C4 k=0
+m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1])*(z_1[i,j]) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*AC) #C4 k=1
+m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2])*(z_2[i,j]) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*AC) #C4 k=2
+m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3])*(z_3[i,j]) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*AC) #C4 k=3
 
 # for k in Aircraft:
 #     m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j]) #C5
