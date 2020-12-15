@@ -16,7 +16,8 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
 
 Aircraft  = [0,1,2,3]
 Aircraft_n = [1,1,1,2,3,3]
-Aircraft_leasecost  = [15000,34000, 80000, 190000]
+Aircraft_leasecost  = [15000, 34000, 80000, 190000]
+Aircraft_seats = [45, 70, 150, 320]
 
 # Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
 #             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
@@ -25,14 +26,14 @@ Aircraft_leasecost  = [15000,34000, 80000, 190000]
 
 
 airports = range(len(Airports))
-CASK = 0.12       #unit operation cost per ASK flown
-LF = 0.8          #average load factor
-s = 120           #number of seats per aicraft
-sp = 870          #speed of aicraft
-LTO = 20/60       #same as turn around time
-BT = 10*7         #times 7 for weekly times the number of aircraft
-AC = 4            #number of aircraft types
-y = 0.18          #yield
+CASK = 0.12                                             #unit operation cost per ASK flown
+LF = 0.8                                                #average load factor
+#s = 120                                                #number of seats per aicraft
+sp = 870                                                #speed of aicraft
+LTO = 20/60                                             #same as turn around time
+BT = 10*7*len(Aircraft_n)                               #times 7 for weekly times the number of aircraft
+AC = len(Aircraft_n)                                    #number of aircraft types
+#y = 0.18                                               #yield, given in matrix below
 
 """
 =============================================================================
@@ -173,19 +174,20 @@ for i in airports:
     for j in airports:
         x[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
                            vtype=GRB.INTEGER)
-        z_0[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+        z_0[i,j] = m.addVar(obj = -CASK*distance[i][j]*Aircraft_seats[0], lb=0,
                            vtype=GRB.INTEGER)
-        z_1[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+        z_1[i,j] = m.addVar(obj = -CASK*distance[i][j]*Aircraft_seats[1], lb=0,
                            vtype=GRB.INTEGER)
-        z_2[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+        z_2[i,j] = m.addVar(obj = -CASK*distance[i][j]*Aircraft_seats[2], lb=0,
                            vtype=GRB.INTEGER)
-        z_3[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+        z_3[i,j] = m.addVar(obj = -CASK*distance[i][j]*Aircraft_seats[3], lb=0,
                            vtype=GRB.INTEGER)        
 
 
 for k in Aircraft_n:
     C[k] = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
                     vtype=GRB.INTEGER)
+
 
 m.update()
 m.setObjective(m.getObjective(), GRB.MAXIMIZE)  # The objective is to maximize revenue
@@ -198,7 +200,7 @@ Constraints:
 for i in airports:
     for j in airports:
         m.addConstr(x[i,j], GRB.LESS_EQUAL, q[i][j]) #C1
-        m.addConstr(x[i, j], GRB.LESS_EQUAL, (z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j])*s*LF) #C2
+        m.addConstr(x[i, j], GRB.LESS_EQUAL, (z_0[i,j]*Aircraft_seats[0]+z_1[i,j]*Aircraft_seats[1]+z_2[i,j]*Aircraft_seats[2]+z_3[i,j]*Aircraft_seats[3])*LF) #C2
     m.addConstr(quicksum((z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i] + z_1[j, i] + z_2[j, i] + z_3[j, i]) for j in airports)) #C3
 
 m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*(z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for i in airports) for j in airports),
@@ -217,6 +219,11 @@ m.write('test.lp')
 m.optimize()
 # m.write("testout.sol")
 status = m.status
+
+solution = []   
+for v in m.getVars():
+      solution.append([v.varName,v.x])
+print(solution)
 
 if status == GRB.Status.UNBOUNDED:
     print('The model cannot be solved because it is unbounded')
