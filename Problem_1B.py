@@ -208,26 +208,27 @@ aircraft_type_amount = {}
 
 for i in airports:
     for j in airports:
+        ij = str(i) + '_' + str(j)
         x[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
-                           vtype=GRB.INTEGER)
+                           vtype=GRB.INTEGER , name='x_'+ij)
         z_0[i,j] = m.addVar(obj = -C_0[i][j]*distance[i][j]*Aircraft_seats[0], lb=0,
-                           vtype=GRB.INTEGER)
+                           vtype=GRB.INTEGER, name='z_0_'+ij)
         z_1[i,j] = m.addVar(obj = -C_1[i][j]*distance[i][j]*Aircraft_seats[1], lb=0,
-                           vtype=GRB.INTEGER)
+                           vtype=GRB.INTEGER, name='z_1_'+ij)
         z_2[i,j] = m.addVar(obj = -C_2[i][j]*distance[i][j]*Aircraft_seats[2], lb=0,
-                           vtype=GRB.INTEGER)
+                           vtype=GRB.INTEGER, name='z_2_'+ij)
         z_3[i,j] = m.addVar(obj = -C_3[i][j]*distance[i][j]*Aircraft_seats[3], lb=0,
-                           vtype=GRB.INTEGER)        
+                           vtype=GRB.INTEGER, name='z_3_'+ij)        
 
 
 aircraft_type_0_amount = m.addVar(obj = -Aircraft_leasecost[0], lb=0,
-                                  vtype=GRB.INTEGER)
+                                  vtype=GRB.INTEGER, name='k0')
 aircraft_type_1_amount = m.addVar(obj = -Aircraft_leasecost[1], lb=0,
-                                  vtype=GRB.INTEGER)
+                                  vtype=GRB.INTEGER, name='k1')
 aircraft_type_2_amount = m.addVar(obj = -Aircraft_leasecost[2], lb=0,
-                                  vtype=GRB.INTEGER)
+                                  vtype=GRB.INTEGER, name='k2')
 aircraft_type_3_amount = m.addVar(obj = -Aircraft_leasecost[3], lb=0,
-                                  vtype=GRB.INTEGER)
+                                  vtype=GRB.INTEGER, name='k3')
 
 m.update()
 m.setObjective(m.getObjective(), GRB.MAXIMIZE)  # The objective is to maximize revenue
@@ -263,10 +264,10 @@ for i in airports:
         m.addConstr(z_2[i,j], GRB.LESS_EQUAL, a_2[i][j])
         m.addConstr(z_3[i,j], GRB.LESS_EQUAL, a_3[i][j])
 
-#constraint 6:    
-m.addConstr(Aircraft_leasecost[0] * aircraft_type_0_amount + Aircraft_leasecost[1] * aircraft_type_1_amount +
-            Aircraft_leasecost[2] * aircraft_type_2_amount + Aircraft_leasecost[3] * aircraft_type_3_amount, 
-            GRB.LESS_EQUAL, B)    
+# #constraint 6:    
+# m.addConstr(Aircraft_leasecost[0] * aircraft_type_0_amount + Aircraft_leasecost[1] * aircraft_type_1_amount +
+#             Aircraft_leasecost[2] * aircraft_type_2_amount + Aircraft_leasecost[3] * aircraft_type_3_amount, 
+#             GRB.LESS_EQUAL, B)    
     
     
 m.update()
