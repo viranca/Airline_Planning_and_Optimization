@@ -15,12 +15,12 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
 Aircraft  = [0,1,2,3]
-Aircraft_n = [1,1,1,2,3,3]
+Aircraft_n = [1,1,1,2,2,3,3]
 Aircraft_leasecost  = [15000, 34000, 80000, 190000]
 Aircraft_seats = [45, 70, 150, 320]
 Aircraft_speed = [550, 820, 850, 870]
 Aircraft_TAT = [25, 35, 45, 60]
-
+Aircraft_range = [1500, 3300, 6300, 12000]
 
 # Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
 #             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
@@ -155,6 +155,45 @@ for i in range(len(C_4)):
         if j == 1:
             C_4[i][j] = 0.7*C_4[i][j]
 
+"""
+=============================================================================
+Defining a_ij matrix for each aircraft type:
+=============================================================================
+"""
+a_0 = np.array(df_distance-Aircraft_range[0])
+for i in range(len(a_0)):
+    for j in range(len(a_0)):
+        if a_0[i][j] >= 0:
+            a_0[i][j] = 10000
+        else:
+            a_0[i][j] = 0
+
+a_1 = np.array(df_distance-Aircraft_range[1])
+for i in range(len(a_1)):
+    for j in range(len(a_1)):
+        if a_1[i][j] >= 0:
+            a_1[i][j] = 10000
+        else:
+            a_1[i][j] = 0
+            
+a_2 = np.array(df_distance-Aircraft_range[2])
+for i in range(len(a_2)):
+    for j in range(len(a_2)):
+        if a_2[i][j] >= 0:
+            a_2[i][j] = 10000
+        else:
+            a_2[i][j] = 0
+
+a_3 = np.array(df_distance-Aircraft_range[3])
+for i in range(len(a_3)):
+    for j in range(len(a_3)):
+        if a_3[i][j] >= 0:
+            a_3[i][j] = 10000
+        else:
+            a_3[i][j] = 0
+
+
+
 
 
 #%%
@@ -221,8 +260,13 @@ m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2])
 m.addConstr(quicksum(quicksum((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3])*(z_3[i,j]) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*AC) #C4 k=3
 
-# for k in Aircraft:
-#     m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j]) #C5
+#constraint 5:
+for i in airports:
+    for j in airports:
+        m.addConstr(z_0[i,j], GRB.LESS_EQUAL, a_0[i][j])
+        m.addConstr(z_1[i,j], GRB.LESS_EQUAL, a_1[i][j])
+        m.addConstr(z_2[i,j], GRB.LESS_EQUAL, a_2[i][j])
+        m.addConstr(z_3[i,j], GRB.LESS_EQUAL, a_3[i][j])
 
 
 
