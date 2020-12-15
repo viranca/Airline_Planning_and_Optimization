@@ -1,4 +1,5 @@
 from gurobipy import *
+from gurobipy import GRB
 import pandas as pd
 import numpy as np
 
@@ -12,6 +13,10 @@ Setup parameters and demand/distance matrix:
 Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 'Munich', 
             'Rome', 'Dublin', 'Stockholm', 'Lisbon', 'Berlin', 'Helsinki', 'Warsaw', 'Edinburgh', 'Bucharest', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
+
+Aircraft  = [0,1,2,3]
+Aircraft_n = [0,0,0,0]
+Aircraft_leasecost  = [15000,34000, 80000, 190000]
 
 # Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
 #             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
@@ -146,6 +151,7 @@ for i in range(len(C_4)):
             C_4[i][j] = 0.7*C_4[i][j]
 
 
+
 #%%
 """
 =============================================================================
@@ -156,12 +162,29 @@ Objective function: max revenue
 m = Model('APO1B')
 x = {}
 z = {}
+C = {}
+z_0 ={}
+z_1 ={}
+z_2 ={}
+z_3 ={}
+
 for i in airports:
     for j in airports:
         x[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
                            vtype=GRB.INTEGER)
-        z[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+        z_0[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
                            vtype=GRB.INTEGER)
+        z_1[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+                           vtype=GRB.INTEGER)
+        z_2[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+                           vtype=GRB.INTEGER)
+        z_3[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
+                           vtype=GRB.INTEGER)        
+
+
+for k in Aircraft:
+    C[k] = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
+                    vtype=GRB.INTEGER)
 
 m.update()
 m.setObjective(m.getObjective(), GRB.MAXIMIZE)  # The objective is to maximize revenue
@@ -174,11 +197,18 @@ Constraints:
 for i in airports:
     for j in airports:
         m.addConstr(x[i,j], GRB.LESS_EQUAL, q[i][j]) #C1
-        m.addConstr(x[i, j], GRB.LESS_EQUAL, z[i,j]*s*LF) #C2
-    m.addConstr(quicksum(z[i,j] for j in airports), GRB.EQUAL, quicksum(z[j, i] for j in airports)) #C3
+        m.addConstr(x[i, j], GRB.LESS_EQUAL, (z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j])*s*LF) #C2
+    m.addConstr(quicksum((z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i] + z_1[j, i] + z_2[j, i] + z_3[j, i]) for j in airports)) #C3
 
-m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*z[i,j] for i in airports) for j in airports),
+m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*(z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*AC) #C4
+
+for k in Aircraft:
+    m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j])
+
+
+
+
 
 
 m.update()
@@ -208,5 +238,5 @@ print("Frequencies:----------------------------------")
 print()
 for i in airports:
     for j in airports:
-        if z[i,j].X >0:
-            print(Airports[i], ' to ', Airports[j], z[i,j].X)
+        if z_0[i,j].X >0:
+            print(Airports[i], ' to ', Airports[j], z_0[i,j].X, z_1[i,j].X, z_2[i,j].X, z_3[i,j].X)
