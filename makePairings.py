@@ -58,13 +58,13 @@ total.to_csv('pairs.csv')
 
 schedule = pd.read_csv('1_Timetable_Group_26.csv')
 flights = schedule['Flight No.']
-Flrnrs = Flnrs.values
-flightsperpair = []
+Flnrs = Flnrs.values
+pairsperflight = []
 for r in range(len(flights)):
     use = []
     for q in range(len(Flnrs)):
-        if r in Flnrs[q]:
+        if flights.iloc[r] in Flnrs[q]:
             use.append(q)
-    flightsperpair.append(use)
-FPP = pd.DataFrame(flightsperpair)
-FPP.to_csv('ServicePerFlight.csv')
+    pairsperflight.append(use)
+PFP = pd.DataFrame(pairsperflight)
+PFP.to_csv('Pairsperflight.csv')
