@@ -15,7 +15,7 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
 Aircraft  = [0,1,2,3]
-Aircraft_n = [0,0,0,0]
+Aircraft_n = [1,1,1,2,3,3]
 Aircraft_leasecost  = [15000,34000, 80000, 190000]
 
 # Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
@@ -48,7 +48,7 @@ with open('distance_df.csv', 'r') as f:
     df_distance = pd.read_csv(f, sep=',', header=0)
 distance = np.array(df_distance)
 
-
+#Appendix B
 Yield = 5.9 * (df_distance ** -0.76) + 0.043
 Yield = np.array(Yield)
 for i in range(len(Yield)):
@@ -61,6 +61,7 @@ for i in range(len(Yield)):
 Compute a costmatrix for each aircraft type at each flight leg.
 =============================================================================
 """
+#Appendix D
 #aircraft 1
 weekly_cost_1 = 15000
 #fixed cost
@@ -182,7 +183,7 @@ for i in airports:
                            vtype=GRB.INTEGER)        
 
 
-for k in Aircraft:
+for k in Aircraft_n:
     C[k] = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
                     vtype=GRB.INTEGER)
 
