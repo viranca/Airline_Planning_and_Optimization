@@ -12,7 +12,7 @@ from gurobipy import GRB
 
 pilots = 150
 timeLimit = 100 # Time limit on the gurobi runtime in seconds
-days = 5
+days = 3
 
 dutyCosts = pd.read_csv('dutyCosts.csv',parse_dates=['Departure','Arrival'],nrows=141,index_col=0)
 pairings = pd.read_csv('pairs.csv')
@@ -23,9 +23,14 @@ maximum = len(dutyCosts)
 m = gp.Model('Crew_pairing')
 m.Params.timeLimit = timeLimit
 
+
+# Make variables
 x = {}
 for i in tqdm(range(len(pairings))): 
     for j in range(days): 
         x[i,j] = m.addVar(vtype = GRB.BINARY, name='x'+str(i)+'_'+str(j))
 m.update() 
 
+# Make constraints
+
+# Make sure each flight is in only one used pairing
