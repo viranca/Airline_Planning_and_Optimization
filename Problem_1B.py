@@ -203,11 +203,8 @@ for i in airports:
 m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*(z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*AC) #C4
 
-for k in Aircraft:
-    m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j])
-
-
-
+# for k in Aircraft:
+#     m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j]) #C5
 
 
 
