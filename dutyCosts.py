@@ -30,7 +30,9 @@ dfHotelCosts = dfHotelCosts.rename(columns={'Per Night Cost Per Room (in MU)': '
 # Calculate Duty Time per flight
 dfTimetable['Duty Time'] = dfTimetable['Arrival Time'] - dfTimetable['Departure Time']
 dfTimetable['Duty Time'] += pd.Timedelta(minutes=2*briefPeriod)
-
+for i in range(len(dfTimetable)):
+    if dfTimetable['Duty Time'].iloc[i] < pd.Timedelta(hours=0):
+        dfTimetable['Duty Time'].iloc[i] += pd.Timedelta(days=1)
 # Calculate Duty Time and Hotel costs per duty period
 duties = []
 overnight = []
@@ -69,3 +71,18 @@ costs += np.dot(qty,fixedSalary) #fixed costs
 costs += np.dot(qty,dutyPay) * pd.to_numeric(dfDutyPeriods['Duty Time']) / 3600 / 10**9
 dfDutyPeriods['Cost'] = costs
 dfDutyPeriods.to_csv('dutyCosts.csv')
+
+'''
+# Create a list of pairs per flight
+flights = dfTimetable.index
+Flnrs = dfDutyPeriods['Flights']
+pairsperflight = []
+for r in tqdm(flights):
+    use = []
+    for q in range(len(Flnrs)):
+        if r in Flnrs.iloc[q]:
+            use.append(q)
+    pairsperflight.append(str(use))
+PFP = pd.DataFrame(pairsperflight)
+PFP.to_csv('Pairsperflight.csv')
+'''
