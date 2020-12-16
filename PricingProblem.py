@@ -43,9 +43,9 @@ x = m.addMVar(NoOfDuties)
 # Make constraints
 # Make sure each flight is in only one used pairing
 # Create a matrix of pairs per flight
-delta_fp = np.zeros([len(timeTable),len(dutyPeriods)])
+delta_fpTotal = np.zeros([len(timeTable),len(dutyPeriodsTotal)])
 flights = timeTable['Flight No.'].values
-Flnrs = dutyPeriods['Flights']
+Flnrs = dutyPeriodsTotal['Flights']
 pairsperflight = []
 
 for i in tqdm(range(len(Flnrs))):
@@ -53,20 +53,21 @@ for i in tqdm(range(len(Flnrs))):
     for r in q:
         # print(r)
         flnr = np.where(flights == r)[0][0]
-        delta_fp[flnr,i] = 1
+        delta_fpTotal[flnr,i] = 1
+delta_fp = delta_fpTotal[:,:NoOfDuties]
 b = np.ones(NoOfFlights)
 m.addConstr(delta_fp@x == b)
 
 
 # Make objective
 cp = dutyCosts['Cost'].values
-cp = cp.transpose()
-m.setObjective(cp @ x)
+cpT = cp.transpose()
+m.setObjective(cpT @ x)
 m.update()
 
-m.optimize()
+# m.optimize()
 
-Pi = m.getAttr(GRB.Attr.Pi, m.getVars())
+# Pi = m.getAttr(GRB.Attr.Pi, m.getVars())
 
 # Dual problem
 n = gp.Model('PricingProblem')
@@ -78,7 +79,6 @@ n.update()
 
 # Make Constraints
 delta_pf = delta_fp.transpose()
-cp = cp.transpose()
 n.addConstr(delta_pf @y <= cp)
 n.update()
 
@@ -90,3 +90,63 @@ n.update()
 n.optimize()
 
 Pi2 = n.getAttr(GRB.Attr.Pi, n.getVars())
+
+
+
+cpTot = dutyCostsTotal['Cost'].values
+slackness = [-100]
+k = 0
+objectives = []
+oud = 1e6
+diff = 20
+columns = list(range(NoOfDuties))
+while diff > 0.001:
+    Pif = np.array(n.getAttr(GRB.Attr.X,n.getVars()))
+    slackness = cpTot - (delta_fpTotal.transpose() @ Pif)
+    newColumns = list(slackness.argsort()[:50])
+    columns += newColumns
+    # newColumns = list(range(rows)) + newColumns
+    
+    # dutyCosts = dutyCostsTotal.iloc[newColumns]
+    cp = dutyCostsTotal['Cost'].iloc[newColumns].values
+    delta_fp = delta_fpTotal[:,newColumns]
+    delta_pf = delta_fp.transpose()
+    n.addConstr(delta_pf @y <= cp)
+    n.update()
+    n.optimize()
+    k += 1
+    # print(oud-n.objVal)
+    objectives.append(n.objVal)
+    diff = oud-n.objVal
+    oud = n.objVal
+    if k > 50:
+        break
+
+
+tmp = n.getAttr(GRB.Attr.Pi)
+
+NoOfDuties = len(columns)
+dutyCosts = dutyCostsTotal.iloc[columns]
+m = gp.Model('Crew_pairing')
+m.Params.timeLimit = timeLimit
+
+
+
+# Make variables
+x = m.addMVar(NoOfDuties,vtype=GRB.BINARY)
+
+# Make constraints
+# Make sure each flight is in only one used pairing
+# Create a matrix of pairs per flight
+delta_fp = delta_fpTotal[:,columns]
+b = np.ones(NoOfFlights)
+m.addConstr(delta_fp@x == b)
+
+
+# Make objective
+cp = dutyCosts['Cost'].values
+cpT = cp.transpose()
+m.setObjective(cpT @ x)
+m.update()
+
+m.optimize()
