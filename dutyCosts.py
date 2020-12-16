@@ -33,6 +33,8 @@ dfTimetable['Duty Time'] += pd.Timedelta(minutes=2*briefPeriod)
 for i in range(len(dfTimetable)):
     if dfTimetable['Duty Time'].iloc[i] < pd.Timedelta(hours=0):
         dfTimetable['Duty Time'].iloc[i] += pd.Timedelta(days=1)
+
+
 # Calculate Duty Time and Hotel costs per duty period
 duties = []
 overnight = []
@@ -73,7 +75,7 @@ dfDutyPeriods['Cost'] = costs
 dfDutyPeriods.to_csv('dutyCosts.csv')
 
 '''
-# Create a list of pairs per flight
+# Create a matrix of pairs per flight
 flights = dfTimetable.index
 Flnrs = dfDutyPeriods['Flights']
 pairsperflight = []
