@@ -1,5 +1,7 @@
 from gurobipy import *
 from gurobipy import GRB
+from gurobipy import quicksum
+from gurobipy import Model
 import pandas as pd
 import numpy as np
 
@@ -15,25 +17,27 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
 Aircraft  = [0,1,2,3]
-Aircraft_n = [1,1,1,2,3,3]
-Aircraft_leasecost  = [15000,34000, 80000, 190000]
-
-# Aircraft = {"1": {"sp": 550, "s": 45,  "TAT": 25, "range": 1500,  "runway": 1400},
-#             "2": {"sp": 820, "s": 70,  "TAT": 35, "range": 3300,  "runway": 1600},
-#             "3": {"sp": 850, "s": 150, "TAT": 45, "range": 6300,  "runway": 1800},
-#             "4": {"sp": 870, "s": 320, "TAT": 60, "range": 12000, "runway": 2600}}
+Aircraft_leasecost  = [15000, 34000, 80000, 190000]
+Aircraft_seats = [45, 70, 150, 320]
+Aircraft_speed = [550, 820, 850, 870]
+Aircraft_TAT = [25, 35, 45, 60]
+Aircraft_range = [1500, 3300, 6300, 12000]
 
 
 airports = range(len(Airports))
-CASK = 0.12       #unit operation cost per ASK flown
-LF = 0.8          #average load factor
-s = 120           #number of seats per aicraft
-sp = 870          #speed of aicraft
-LTO = 20/60       #same as turn around time
-BT = 10*7         #times 7 for weekly times the number of aircraft
-AC = 4            #number of aircraft types
-y = 0.18          #yield
+#CASK = 0.12                                            #unit operation cost per ASK flown  	    (given in matrix below)
+LF = 0.8                                                #average load factor                        (given in list above)
+#s = 120                                                #number of seats per aicraft                (given in list above)  	       	      	    
+#sp = 870                                               #speed of aicraft                           (given in list above)
+#LTO = 20/60                                            #same as turn around time                   (given in list above)
+BT = 10*7                                               #Aircraft utilisation times 7 for weekly
+#AC = len(Aircraft_n)                                   #number of aircraft types                   (given by the optimization below)
+#y = 0.18                                               #yield                                      (given in matrix below)
+B = 100000                                              #Budget                                     (?)
+g = [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]           #Paris is the hub
 
+
+#%%
 """
 =============================================================================
 demand, distance and yield for every flight leg:
@@ -62,63 +66,67 @@ Compute a costmatrix for each aircraft type at each flight leg.
 =============================================================================
 """
 #Appendix D
-#aircraft 1
-weekly_cost_1 = 15000
+#aircraft 0
 #fixed cost
-C_X_1 = 300
+C_X_0 = 300
 #time-based cost
-c_T_1 = 750
-V_1 = 550
-C_T_1 = c_T_1 * df_distance / V_1
+c_T_0 = 750
+V_0 = Aircraft_speed[0]
+C_T_0 = c_T_0 * (df_distance / V_0)
 #fuel cost
-c_F_1 = 1
+c_F_0 = 1
+f = 1.42
+C_F_0 = ((c_F_0 * f)/1.5) * df_distance
+C_0 = C_X_0 + C_T_0 + C_F_0 
+
+#aircraft 1
+#fixed cost
+C_X_1 = 600
+#time-based cost
+c_T_1 = 775
+V_1 = Aircraft_speed[1]
+C_T_1 = c_T_1 * (df_distance / V_1)
+#fuel cost
+c_F_1 = 2
 f = 1.42
 C_F_1 = ((c_F_1 * f)/1.5) * df_distance
 C_1 = C_X_1 + C_T_1 + C_F_1 
 
 #aircraft 2
-weekly_cost_2 = 34000
 #fixed cost
-C_X_2 = 600
+C_X_2 = 1250
 #time-based cost
-c_T_2 = 775
-V_2 = 820
-C_T_2 = c_T_2 * df_distance / V_2
+c_T_2 = 1400
+V_2 = Aircraft_speed[2]
+C_T_2 = c_T_2 * (df_distance / V_2)
 #fuel cost
-c_F_2 = 2
+c_F_2 = 3.75
 f = 1.42
 C_F_2 = ((c_F_2 * f)/1.5) * df_distance
 C_2 = C_X_2 + C_T_2 + C_F_2 
 
 #aircraft 3
-weekly_cost_3 = 80000
 #fixed cost
-C_X_3 = 1250
+C_X_3 = 2000
 #time-based cost
-c_T_3 = 1400
-V_3 = 850
+c_T_3 = 2800
+V_3 = Aircraft_speed[3]
 C_T_3 = c_T_3 * df_distance / V_3
 #fuel cost
-c_F_3 = 3.75
+c_F_3 = 9.0
 f = 1.42
 C_F_3 = ((c_F_3 * f)/1.5) * df_distance
 C_3 = C_X_3 + C_T_3 + C_F_3 
-
-#aircraft 4
-weekly_cost_4 = 190000
-#fixed cost
-C_X_4 = 2000
-#time-based cost
-c_T_4 = 2800
-V_4 = 870
-C_T_4 = c_T_4 * df_distance / V_4
-#fuel cost
-c_F_4 = 9.0
-f = 1.42
-C_F_4 = ((c_F_4 * f)/1.5) * df_distance
-C_4 = C_X_4 + C_T_4 + C_F_4 
   
 #accounting economies of scale (departing and arriving from hub)
+C_0 = np.array(C_0)           
+for i in range(len(C_0)):
+    for j in range(len(C_0)):
+        if i == 1 and j != 1:
+            C_0[i][j] = 0.7*C_0[i][j]
+        if j == 1:
+            C_0[i][j] = 0.7*C_0[i][j]
+
 C_1 = np.array(C_1)
 for i in range(len(C_1)):
     for j in range(len(C_1)):
@@ -126,7 +134,7 @@ for i in range(len(C_1)):
             C_1[i][j] = 0.7*C_1[i][j]
         if j == 1:
             C_1[i][j] = 0.7*C_1[i][j]
-            
+           
 C_2 = np.array(C_2)
 for i in range(len(C_2)):
     for j in range(len(C_2)):
@@ -142,18 +150,46 @@ for i in range(len(C_3)):
             C_3[i][j] = 0.7*C_3[i][j]
         if j == 1:
             C_3[i][j] = 0.7*C_3[i][j]
+           
+
+"""
+=============================================================================
+Defining a_ij (range) matrix for each aircraft type:
+=============================================================================
+"""
+a_0 = np.array(df_distance-Aircraft_range[0])
+for i in range(len(a_0)):
+    for j in range(len(a_0)):
+        if a_0[i][j] >= 0:
+            a_0[i][j] = 0
+        else:
+            a_0[i][j] = 10000
+
+a_1 = np.array(df_distance-Aircraft_range[1])
+for i in range(len(a_1)):
+    for j in range(len(a_1)):
+        if a_1[i][j] >= 0:
+            a_1[i][j] = 0
+        else:
+            a_1[i][j] = 10000
             
-C_4 = np.array(C_4)           
-for i in range(len(C_4)):
-    for j in range(len(C_4)):
-        if i == 1 and j != 1:
-            C_4[i][j] = 0.7*C_4[i][j]
-        if j == 1:
-            C_4[i][j] = 0.7*C_4[i][j]
+a_2 = np.array(df_distance-Aircraft_range[2])
+for i in range(len(a_2)):
+    for j in range(len(a_2)):
+        if a_2[i][j] >= 0:
+            a_2[i][j] = 0
+        else:
+            a_2[i][j] = 10000
+
+a_3 = np.array(df_distance-Aircraft_range[3])
+for i in range(len(a_3)):
+    for j in range(len(a_3)):
+        if a_3[i][j] >= 0:
+            a_3[i][j] = 0
+        else:
+            a_3[i][j] = 10000
 
 
-
-#%%
 """
 =============================================================================
 Objective function: max revenue
@@ -164,28 +200,38 @@ m = Model('APO1B')
 x = {}
 z = {}
 C = {}
-z_0 ={}
-z_1 ={}
-z_2 ={}
-z_3 ={}
+z_0 = {}
+z_1 = {}
+z_2 = {}
+z_3 = {}
+aircraft_type_amount = {}
+w = {}
 
 for i in airports:
     for j in airports:
+        ij = str(i) + '_' + str(j)
         x[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
-                           vtype=GRB.INTEGER)
-        z_0[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
-                           vtype=GRB.INTEGER)
-        z_1[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
-                           vtype=GRB.INTEGER)
-        z_2[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
-                           vtype=GRB.INTEGER)
-        z_3[i,j] = m.addVar(obj = -CASK*distance[i][j]*s, lb=0,
-                           vtype=GRB.INTEGER)        
+                           vtype=GRB.INTEGER , name='x_'+ij)
+        w[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
+                           vtype=GRB.INTEGER , name='w_'+ij)        
+        z_0[i,j] = m.addVar(obj = -C_0[i][j]*distance[i][j]*Aircraft_seats[0], lb=0,
+                           vtype=GRB.INTEGER, name='z_0_'+ij)
+        z_1[i,j] = m.addVar(obj = -C_1[i][j]*distance[i][j]*Aircraft_seats[1], lb=0,
+                           vtype=GRB.INTEGER, name='z_1_'+ij)
+        z_2[i,j] = m.addVar(obj = -C_2[i][j]*distance[i][j]*Aircraft_seats[2], lb=0,
+                           vtype=GRB.INTEGER, name='z_2_'+ij)
+        z_3[i,j] = m.addVar(obj = -C_3[i][j]*distance[i][j]*Aircraft_seats[3], lb=0,
+                           vtype=GRB.INTEGER, name='z_3_'+ij)        
 
 
-for k in Aircraft_n:
-    C[k] = m.addVar(obj = -Aircraft_leasecost[k], lb=0,
-                    vtype=GRB.INTEGER)
+aircraft_type_0_amount = m.addVar(obj = -Aircraft_leasecost[0], lb=0,
+                                  vtype=GRB.INTEGER, name='k0')
+aircraft_type_1_amount = m.addVar(obj = -Aircraft_leasecost[1], lb=0,
+                                  vtype=GRB.INTEGER, name='k1')
+aircraft_type_2_amount = m.addVar(obj = -Aircraft_leasecost[2], lb=0,
+                                  vtype=GRB.INTEGER, name='k2')
+aircraft_type_3_amount = m.addVar(obj = -Aircraft_leasecost[3], lb=0,
+                                  vtype=GRB.INTEGER, name='k3')
 
 m.update()
 m.setObjective(m.getObjective(), GRB.MAXIMIZE)  # The objective is to maximize revenue
@@ -197,18 +243,39 @@ Constraints:
 """
 for i in airports:
     for j in airports:
-        m.addConstr(x[i,j], GRB.LESS_EQUAL, q[i][j]) #C1
-        m.addConstr(x[i, j], GRB.LESS_EQUAL, (z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j])*s*LF) #C2
-    m.addConstr(quicksum((z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i] + z_1[j, i] + z_2[j, i] + z_3[j, i]) for j in airports)) #C3
+        m.addConstr(x[i,j] + w[i,j], GRB.LESS_EQUAL, q[i][j]) #C1
+        m.addConstr(x[i,j] + quicksum((w[i,m]*(1-g[j])) for m in airports) + quicksum((w[m,j]*(1-g[i])) for m in airports) ,
+                    GRB.LESS_EQUAL, (z_0[i,j]*Aircraft_seats[0]+z_1[i,j]*Aircraft_seats[1]+
+                                     z_2[i,j]*Aircraft_seats[2]+z_3[i,j]*Aircraft_seats[3])*LF) #C2
+        
+        m.addConstr(quicksum((z_0[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i]) for j in airports)) #C3 k=0
+        m.addConstr(quicksum((z_1[i,j]) for j in airports), GRB.EQUAL, quicksum((z_1[j, i]) for j in airports)) #C3 k=1
+        m.addConstr(quicksum((z_2[i,j]) for j in airports), GRB.EQUAL, quicksum((z_2[j, i]) for j in airports)) #C3 k=2
+        m.addConstr(quicksum((z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_3[j, i]) for j in airports)) #C3 k=3
 
-m.addConstr(quicksum(quicksum((distance[i][j]/sp+LTO)*(z_0[i,j]+z_1[i,j]+z_2[i,j]+z_3[i,j]) for i in airports) for j in airports),
-            GRB.LESS_EQUAL, BT*AC) #C4
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[0])+Aircraft_TAT[0])*(z_0[i,j])) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*aircraft_type_0_amount) #C4 k=0
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1])*(z_1[i,j]))) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*aircraft_type_1_amount) #C4 k=1
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2])*(z_2[i,j]))) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*aircraft_type_2_amount) #C4 k=2
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3])*(z_3[i,j]))) for i in airports) for j in airports),
+            GRB.LESS_EQUAL, BT*aircraft_type_3_amount) #C4 k=3
 
-# for k in Aircraft:
-#     m.addConstr(C[k], GRB.LESS_EQUAL, q[i][j]) #C5
+#constraint 5:
+for i in airports:
+    for j in airports:
+        m.addConstr(z_0[i,j], GRB.LESS_EQUAL, a_0[i][j])
+        m.addConstr(z_1[i,j], GRB.LESS_EQUAL, a_1[i][j])
+        m.addConstr(z_2[i,j], GRB.LESS_EQUAL, a_2[i][j])
+        m.addConstr(z_3[i,j], GRB.LESS_EQUAL, a_3[i][j])
 
-
-
+#constraint 6:    
+# m.addConstr(Aircraft_leasecost[0] * aircraft_type_0_amount + Aircraft_leasecost[1] * aircraft_type_1_amount +
+#             Aircraft_leasecost[2] * aircraft_type_2_amount + Aircraft_leasecost[3] * aircraft_type_3_amount, 
+#             GRB.LESS_EQUAL, B)    
+    
+    
 m.update()
 m.write('test.lp')
 # Set time constraint for optimization (5minutes)
@@ -218,6 +285,13 @@ m.optimize()
 # m.write("testout.sol")
 status = m.status
 
+# solution = []   
+# for v in m.getVars():
+#       solution.append([v.varName,v.x])
+# print(solution)
+
+
+
 if status == GRB.Status.UNBOUNDED:
     print('The model cannot be solved because it is unbounded')
 
@@ -225,7 +299,9 @@ elif status == GRB.Status.OPTIMAL or True:
     f_objective = m.objVal
     print('***** RESULTS ******')
     print('\nObjective Function Value: \t %g' % f_objective)
-
+    print("amount of aicraft for each type: ", aircraft_type_0_amount.x, aircraft_type_1_amount.x, 
+                                             aircraft_type_2_amount.x, aircraft_type_3_amount.x)
+    
 elif status != GRB.Status.INF_OR_UNBD and status != GRB.Status.INFEASIBLE:
     print('Optimization was stopped with status %d' % status)
 
