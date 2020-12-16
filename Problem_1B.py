@@ -16,12 +16,17 @@ Airports = ['London', 'Paris', 'Amsterdam',	'Frankfurt', 'Madrid',	'Barcelona', 
             'Rome', 'Dublin', 'Stockholm', 'Lisbon', 'Berlin', 'Helsinki', 'Warsaw', 'Edinburgh', 'Bucharest', 
             'Heraklion', 'Reykjavik',	'Palermo', 'Madeira']
 
+Airport_runway = [3200, 3100, 3400, 3400, 3600, 2700, 2800, 2800, 2600, 2700, 2600, 2900, 2700, 2500, 2200, 
+                  1900, 1800, 2200, 2300, 1900]
+
+
 Aircraft  = [0,1,2,3]
 Aircraft_leasecost  = [15000, 34000, 80000, 190000]
 Aircraft_seats = [45, 70, 150, 320]
 Aircraft_speed = [550, 820, 850, 870]
-Aircraft_TAT = [25, 35, 45, 60]
+Aircraft_TAT = [25/60, 35/60, 45/60, 60/60]
 Aircraft_range = [1500, 3300, 6300, 12000]
+Aircraft_runway_required = [1400, 1600, 1800, 2600]
 
 
 airports = range(len(Airports))
@@ -32,12 +37,11 @@ LF = 0.8                                                #average load factor    
 #LTO = 20/60                                            #same as turn around time                   (given in list above)
 BT = 10*7                                               #Aircraft utilisation times 7 for weekly
 #AC = len(Aircraft_n)                                   #number of aircraft types                   (given by the optimization below)
-#y = 0.18                                               #yield                                      (given in matrix below)
-B = 100000                                              #Budget                                     (?)
+#y = 0.18                                               #yield                                      (given in matrix below)                                             
+B = 10000                                               #Budget                                     (Constraint 6 budget is relaxed)
 g = [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]           #Paris is the hub
+g_inv = [1,1.5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] 
 
-
-#%%
 """
 =============================================================================
 demand, distance and yield for every flight leg:
@@ -60,6 +64,8 @@ for i in range(len(Yield)):
         if i == j:
             Yield[i][j] = 0
             
+            
+            
 """
 =============================================================================
 Compute a costmatrix for each aircraft type at each flight leg.
@@ -69,7 +75,7 @@ Compute a costmatrix for each aircraft type at each flight leg.
 #aircraft 0
 #fixed cost
 C_X_0 = 300
-#time-based cost
+#time-based cost in hours
 c_T_0 = 750
 V_0 = Aircraft_speed[0]
 C_T_0 = c_T_0 * (df_distance / V_0)
@@ -189,6 +195,47 @@ for i in range(len(a_3)):
         else:
             a_3[i][j] = 10000
 
+"""
+=============================================================================
+Defining R_ij (runway) matrix for each aircraft type:
+=============================================================================
+"""
+r_0 = np.zeros(shape=(20,20))
+for i in range(len(r_0)):
+    for j in range(len(r_0)):
+        r_0[i][j] = Airport_runway[j] - Aircraft_runway_required[0]       
+        if r_0[i][j] >= 0:
+            r_0[i][j] = 10000
+        else:
+            r_0[i][j] = 0
+           
+r_1 = np.zeros(shape=(20,20))
+for i in range(len(r_1)):
+    for j in range(len(r_1)):
+        r_1[i][j] = Airport_runway[j] - Aircraft_runway_required[1]       
+        if r_1[i][j] >= 0:
+            r_1[i][j] = 10000
+        else:
+            r_1[i][j] = 0
+                       
+r_2 = np.zeros(shape=(20,20))
+for i in range(len(r_2)):
+    for j in range(len(r_2)):
+        r_2[i][j] = Airport_runway[j] - Aircraft_runway_required[2]       
+        if r_2[i][j] >= 0:
+            r_2[i][j] = 10000
+        else:
+            r_2[i][j] = 0
+                     
+r_3 = np.zeros(shape=(20,20))
+for i in range(len(r_3)):
+    for j in range(len(r_3)):
+        r_3[i][j] = Airport_runway[j] - Aircraft_runway_required[3]       
+        if r_3[i][j] >= 0:
+            r_3[i][j] = 10000
+        else:
+            r_3[i][j] = 0
+
 
 """
 =============================================================================
@@ -214,13 +261,13 @@ for i in airports:
                            vtype=GRB.INTEGER , name='x_'+ij)
         w[i,j] = m.addVar(obj = Yield[i][j]*distance[i][j],lb=0,
                            vtype=GRB.INTEGER , name='w_'+ij)        
-        z_0[i,j] = m.addVar(obj = -C_0[i][j]*distance[i][j]*Aircraft_seats[0], lb=0,
+        z_0[i,j] = m.addVar(obj = -C_0[i][j], lb=0,
                            vtype=GRB.INTEGER, name='z_0_'+ij)
-        z_1[i,j] = m.addVar(obj = -C_1[i][j]*distance[i][j]*Aircraft_seats[1], lb=0,
+        z_1[i,j] = m.addVar(obj = -C_1[i][j], lb=0,
                            vtype=GRB.INTEGER, name='z_1_'+ij)
-        z_2[i,j] = m.addVar(obj = -C_2[i][j]*distance[i][j]*Aircraft_seats[2], lb=0,
+        z_2[i,j] = m.addVar(obj = -C_2[i][j], lb=0,
                            vtype=GRB.INTEGER, name='z_2_'+ij)
-        z_3[i,j] = m.addVar(obj = -C_3[i][j]*distance[i][j]*Aircraft_seats[3], lb=0,
+        z_3[i,j] = m.addVar(obj = -C_3[i][j], lb=0,
                            vtype=GRB.INTEGER, name='z_3_'+ij)        
 
 
@@ -244,22 +291,26 @@ Constraints:
 for i in airports:
     for j in airports:
         m.addConstr(x[i,j] + w[i,j], GRB.LESS_EQUAL, q[i][j]) #C1
+        m.addConstr(w[i,j], GRB.LESS_EQUAL, q[i][j] * g[i] * g[j]) #C1*
+        
         m.addConstr(x[i,j] + quicksum((w[i,m]*(1-g[j])) for m in airports) + quicksum((w[m,j]*(1-g[i])) for m in airports) ,
                     GRB.LESS_EQUAL, (z_0[i,j]*Aircraft_seats[0]+z_1[i,j]*Aircraft_seats[1]+
-                                     z_2[i,j]*Aircraft_seats[2]+z_3[i,j]*Aircraft_seats[3])*LF) #C2
+                                      z_2[i,j]*Aircraft_seats[2]+z_3[i,j]*Aircraft_seats[3])*LF) #C2
+
+        
         
         m.addConstr(quicksum((z_0[i,j]) for j in airports), GRB.EQUAL, quicksum((z_0[j, i]) for j in airports)) #C3 k=0
         m.addConstr(quicksum((z_1[i,j]) for j in airports), GRB.EQUAL, quicksum((z_1[j, i]) for j in airports)) #C3 k=1
         m.addConstr(quicksum((z_2[i,j]) for j in airports), GRB.EQUAL, quicksum((z_2[j, i]) for j in airports)) #C3 k=2
         m.addConstr(quicksum((z_3[i,j]) for j in airports), GRB.EQUAL, quicksum((z_3[j, i]) for j in airports)) #C3 k=3
 
-m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[0])+Aircraft_TAT[0])*(z_0[i,j])) for i in airports) for j in airports),
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[0]+Aircraft_TAT[0]*(g_inv[j]))*(z_0[i,j]))) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*aircraft_type_0_amount) #C4 k=0
-m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1])*(z_1[i,j]))) for i in airports) for j in airports),
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1]*(g_inv[j]))*(z_1[i,j]))) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*aircraft_type_1_amount) #C4 k=1
-m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2])*(z_2[i,j]))) for i in airports) for j in airports),
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2]*(g_inv[j]))*(z_2[i,j]))) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*aircraft_type_2_amount) #C4 k=2
-m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3])*(z_3[i,j]))) for i in airports) for j in airports),
+m.addConstr(quicksum(quicksum((((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3]*(g_inv[j]))*(z_3[i,j]))) for i in airports) for j in airports),
             GRB.LESS_EQUAL, BT*aircraft_type_3_amount) #C4 k=3
 
 #constraint 5:
@@ -270,7 +321,17 @@ for i in airports:
         m.addConstr(z_2[i,j], GRB.LESS_EQUAL, a_2[i][j])
         m.addConstr(z_3[i,j], GRB.LESS_EQUAL, a_3[i][j])
 
-#constraint 6:    
+#runway constraint
+for i in airports:
+    for j in airports:
+        m.addConstr(z_0[i,j], GRB.LESS_EQUAL, r_0[i][j])
+        m.addConstr(z_1[i,j], GRB.LESS_EQUAL, r_1[i][j])
+        m.addConstr(z_2[i,j], GRB.LESS_EQUAL, r_2[i][j])
+        m.addConstr(z_3[i,j], GRB.LESS_EQUAL, r_3[i][j])
+
+
+
+#constraint 6: budget   
 # m.addConstr(Aircraft_leasecost[0] * aircraft_type_0_amount + Aircraft_leasecost[1] * aircraft_type_1_amount +
 #             Aircraft_leasecost[2] * aircraft_type_2_amount + Aircraft_leasecost[3] * aircraft_type_3_amount, 
 #             GRB.LESS_EQUAL, B)    
@@ -279,8 +340,8 @@ for i in airports:
 m.update()
 m.write('test.lp')
 # Set time constraint for optimization (5minutes)
-# m.setParam('TimeLimit', 1 * 60)
-# m.setParam('MIPgap', 0.009)
+#m.setParam('TimeLimit', 1 * 60)
+m.setParam('MIPgap', 0.005)
 m.optimize()
 # m.write("testout.sol")
 status = m.status
