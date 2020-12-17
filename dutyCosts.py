@@ -72,7 +72,7 @@ costs  = dfDutyPeriods['Overnight'].copy() # Hotel costs
 costs += np.dot(qty,fixedSalary) #fixed costs
 costs += np.dot(qty,dutyPay) * pd.to_numeric(dfDutyPeriods['Duty Time']) / 3600 / 10**9
 dfDutyPeriods['Cost'] = costs
-dfDutyPeriods.to_csv('dutyCosts.csv')
+dfDutyPeriods.to_csv('2_dutyCosts.csv')
 
 '''
 # Create a matrix of pairs per flight
