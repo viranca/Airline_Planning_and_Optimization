@@ -13,6 +13,7 @@ Created on Wed Dec  9 15:56:11 2020
 import pandas as pd
 import numpy as np
 import ast
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import gurobipy as gp 
 from gurobipy import GRB
@@ -122,6 +123,9 @@ while diff > 0.001:
     if k > 50:
         break
 
+plt.figure()
+plt.plot(objectives)
+plt.show()
 
 tmp = n.getAttr(GRB.Attr.Pi)
 
