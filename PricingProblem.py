@@ -21,7 +21,7 @@ from gurobipy import GRB
 timeLimit = 100 # Time limit on the gurobi runtime in seconds
 rows = 141
 
-dutyCostsTotal = pd.read_csv('dutyCosts.csv',parse_dates=['Departure','Arrival'],index_col=0)
+dutyCostsTotal = pd.read_csv('2_dutyCosts.csv',parse_dates=['Departure','Arrival'],index_col=0)
 timeTable = pd.read_csv('1_Timetable_Group_26.csv')
 dutyPeriodsTotal = pd.read_csv('2_Duty_Periods_Group_26.csv')
 dutyCosts = dutyCostsTotal.iloc[:rows]
