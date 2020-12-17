@@ -47,12 +47,12 @@ g_inv = [1,1.5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]     #Turn around time to par
 demand, distance and yield for every flight leg:
 =============================================================================
 """
-with open('q_demand.csv', 'r') as f:
+with open('1_q_demand.csv', 'r') as f:
     df_demand = pd.read_csv(f, sep=';', header=0)
 q = np.array(df_demand)
 
 
-with open('distance_df.csv', 'r') as f:
+with open('1_distance_df.csv', 'r') as f:
     df_distance = pd.read_csv(f, sep=',', header=0)
 distance = np.array(df_distance)
 
