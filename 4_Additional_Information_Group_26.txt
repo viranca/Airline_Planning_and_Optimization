@@ -1,4 +1,0 @@
-ADDITIONAL INFORMATION GROUP 26
-
-Airline: Central Connect
-Brief Period Duration [min]: 25

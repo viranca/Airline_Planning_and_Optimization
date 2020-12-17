@@ -40,7 +40,7 @@ BT = 10*7                                               #Aircraft utilisation ti
 #y = 0.18                                               #yield                                      (given in matrix below)                                             
 B = 10000                                               #Budget                                     (Constraint 6 budget is relaxed)
 g = [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]           #Paris is the hub
-g_inv = [1,1.5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] 
+g_inv = [1,1.5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]     #Turn around time to paris is 1.5x higher
 
 """
 =============================================================================
