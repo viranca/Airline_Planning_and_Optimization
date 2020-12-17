@@ -159,7 +159,7 @@ for i in range(latitudes.size):
             Demand_2020[j, i] = Demand_2020[i, j]
 Demand_2020.resize(latitudes.size-1, latitudes.size)
 dem2020_df = pd.DataFrame(Demand_2020)
-dem2020_df.to_excel('dem2020_df.xlsx')
+# dem2020_df.to_excel('dem2020_df.xlsx')
 print(dem2020_df)
 
 # for i in range(latitudes.size):
