@@ -76,12 +76,13 @@ Pi2 = n.getAttr(GRB.Attr.Pi, n.getVars())
 
 cpTot = dutyCostsTotal['Cost'].values
 slackness = [-100]
-k = 0
+k = 0 # Total iterations
+l = 0 # Consecutive iterations with less than 0.001 MU difference
 objectives = [n.objVal]
 oud = 1e6
-diff = 20
+active = 1
 columns = list(range(NoOfDuties))
-while diff > 0.001:
+while active > 0:
     Pif = np.array(n.getAttr(GRB.Attr.X,n.getVars()))
     slackness = cpTot - (delta_fpTotal.transpose() @ Pif)
     newColumns = list(slackness.argsort()[:50])
@@ -100,6 +101,12 @@ while diff > 0.001:
     objectives.append(n.objVal)
     diff = oud-n.objVal
     oud = n.objVal
+    if diff < 0.001:
+        l += 1
+    else:
+        l = 0
+    if l == 6:
+        active = 0
     if k > 50:
         break
 
@@ -146,7 +153,8 @@ m.update()
 m.optimize()
 
 chosenPairings = m.getAttr(GRB.Attr.X)
-print('The (binary) crew pairing problem has the following pairings scheduled:')
+print('\n The (binary) crew pairing problem has the following pairings scheduled:')
 for i in range(len(chosenPairings)):
     if chosenPairings[i] > 0:
         print('Duty',i)
+print('The Final Objective Value is',m.objVal,',obtained after',k,'iterations')
