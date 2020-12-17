@@ -338,7 +338,7 @@ for i in airports:
     
     
 m.update()
-m.write('test.lp')
+m.write('1_Problem1B_LP.lp')
 # Set time constraint for optimization (5minutes)
 #m.setParam('TimeLimit', 1 * 60)
 m.setParam('MIPgap', 0.005)
