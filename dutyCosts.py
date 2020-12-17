@@ -65,7 +65,7 @@ dfDutyPeriods['Arrival'] = arr
 dfDutyPeriods['Departure'] = dfDutyPeriods['Departure'].dt.time
 dfDutyPeriods['Arrival'] = dfDutyPeriods['Arrival'].dt.time
 dfDutyPeriods['Duty Time'] = duties
-dfDutyPeriods['Overnight'] = overnight
+dfDutyPeriods['Overnight'] = overnight # hotel costs
 
 # Total duty costs
 costs  = dfDutyPeriods['Overnight'].copy() # Hotel costs
