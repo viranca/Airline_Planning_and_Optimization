@@ -20,9 +20,6 @@ dutyPay = np.array([120,55,18])
 
 # Importing data, save it as DataFrame
 dfTimetable = pd.read_csv('1_Timetable_Group_26.csv', index_col=0,parse_dates=['Departure Time','Arrival Time'],infer_datetime_format=True)
-# dfTimetable = pd.read_csv('1_Timetable_Group_26.csv',index_col=0)
-# dfTimetable['Departure Time'] = pd.DatetimeIndex(dfTimetable['Departure Time']).time
-# dfTimetable['Arrival Time'] = pd.DatetimeIndex(dfTimetable['Arrival Time']).time
 dfDutyPeriods = pd.read_csv('2_Duty_Periods_Group_26.csv', index_col=0)
 dfHotelCosts = pd.read_csv('3_Hotel_Costs_Group_26.csv', index_col=0)
 dfHotelCosts = dfHotelCosts.rename(columns={'Per Night Cost Per Room (in MU)': 'cost'})
