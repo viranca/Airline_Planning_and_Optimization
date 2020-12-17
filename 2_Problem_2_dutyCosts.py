@@ -74,17 +74,8 @@ costs += np.dot(qty,dutyPay) * pd.to_numeric(dfDutyPeriods['Duty Time']) / 3600 
 dfDutyPeriods['Cost'] = costs
 dfDutyPeriods.to_csv('2_dutyCosts.csv')
 
-'''
-# Create a matrix of pairs per flight
-flights = dfTimetable.index
-Flnrs = dfDutyPeriods['Flights']
-pairsperflight = []
-for r in tqdm(flights):
-    use = []
-    for q in range(len(Flnrs)):
-        if r in Flnrs.iloc[q]:
-            use.append(q)
-    pairsperflight.append(str(use))
-PFP = pd.DataFrame(pairsperflight)
-PFP.to_csv('Pairsperflight.csv')
-'''
+
+# Give Duty Costs of some duties
+needed = [100,500,750,1200,2000]
+for i in needed:
+    print('Duty',i,'costs',dfDutyPeriods['Cost'].loc[i])

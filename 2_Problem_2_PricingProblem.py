@@ -18,32 +18,24 @@ from tqdm import tqdm
 import gurobipy as gp 
 from gurobipy import GRB
 
+# Input variables
+timeLimit = 100 # Time limit on the gurobi runtime in seconds, just to prevent an endless loop
+rows = 141 # the first 141 rows of the duty periods contain the single flights
 
-timeLimit = 100 # Time limit on the gurobi runtime in seconds
-rows = 141
-
+# Reading data from files
 dutyCostsTotal = pd.read_csv('2_dutyCosts.csv',parse_dates=['Departure','Arrival'],index_col=0)
 timeTable = pd.read_csv('1_Timetable_Group_26.csv')
 dutyPeriodsTotal = pd.read_csv('2_Duty_Periods_Group_26.csv')
+
+# Creating variables needed initially
 dutyCosts = dutyCostsTotal.iloc[:rows]
 dutyPeriods = dutyPeriodsTotal.iloc[:rows]
-# PPF = pd.read_csv('Pairsperflight.csv')
-
 NoOfDuties = len(dutyCosts)
 NoOfFlights = len(timeTable)
+cp = dutyCosts['Cost'].values
 
-
-m = gp.Model('Crew_pairing')
-m.Params.timeLimit = timeLimit
-
-
-
-# Make variables
-x = m.addMVar(NoOfDuties)
-
-# Make constraints
-# Make sure each flight is in only one used pairing
-# Create a matrix of pairs per flight
+# Creating delta_f^p: matrix containing all flights and all duty 
+# periods, with delta_fpTotal[i,j] = 1 if flight i is serviced in duty j
 delta_fpTotal = np.zeros([len(timeTable),len(dutyPeriodsTotal)])
 flights = timeTable['Flight No.'].values
 Flnrs = dutyPeriodsTotal['Flights']
@@ -55,20 +47,7 @@ for i in tqdm(range(len(Flnrs))):
         # print(r)
         flnr = np.where(flights == r)[0][0]
         delta_fpTotal[flnr,i] = 1
-delta_fp = delta_fpTotal[:,:NoOfDuties]
-b = np.ones(NoOfFlights)
-m.addConstr(delta_fp@x == b)
 
-
-# Make objective
-cp = dutyCosts['Cost'].values
-cpT = cp.transpose()
-m.setObjective(cpT @ x)
-m.update()
-
-# m.optimize()
-
-# Pi = m.getAttr(GRB.Attr.Pi, m.getVars())
 
 # Dual problem
 n = gp.Model('PricingProblem')
@@ -79,6 +58,7 @@ y = n.addMVar(NoOfFlights)
 n.update()
 
 # Make Constraints
+delta_fp = delta_fpTotal[:,:NoOfDuties] # only single leg duties are used
 delta_pf = delta_fp.transpose()
 n.addConstr(delta_pf @y <= cp)
 n.update()
@@ -97,7 +77,7 @@ Pi2 = n.getAttr(GRB.Attr.Pi, n.getVars())
 cpTot = dutyCostsTotal['Cost'].values
 slackness = [-100]
 k = 0
-objectives = []
+objectives = [n.objVal]
 oud = 1e6
 diff = 20
 columns = list(range(NoOfDuties))
@@ -123,11 +103,21 @@ while diff > 0.001:
     if k > 50:
         break
 
+x = range(len(objectives))
 plt.figure()
-plt.plot(objectives)
+plt.plot(x,objectives,'x')
+plt.xlabel('Iteration')
+# plt.xticks(x)
+plt.xticks(np.arange(min(x), max(x)+2, 2))
+plt.ylabel('Objective value')
+plt.savefig('2_Problem2_objectiveIteration.png')
 plt.show()
 
-tmp = n.getAttr(GRB.Attr.Pi)
+chosenPairings = n.getAttr(GRB.Attr.Pi)
+print('The (relaxed) pricing problem has the following pairings scheduled:')
+for i in range(len(chosenPairings)):
+    if chosenPairings[i] > 0:
+        print('Duty',i,':',chosenPairings[i])
 
 NoOfDuties = len(columns)
 dutyCosts = dutyCostsTotal.iloc[columns]
@@ -154,3 +144,9 @@ m.setObjective(cpT @ x)
 m.update()
 
 m.optimize()
+
+chosenPairings = m.getAttr(GRB.Attr.X)
+print('The (binary) crew pairing problem has the following pairings scheduled:')
+for i in range(len(chosenPairings)):
+    if chosenPairings[i] > 0:
+        print('Duty',i)
