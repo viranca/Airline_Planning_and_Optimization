@@ -171,7 +171,9 @@ m.optimize()
 chosenPairings = m.getAttr(GRB.Attr.X) # value of each variable, 1 depicts a chosen pairing, 0 it is not chosen
 dutyNumbers = [] # list with actual duties occupied
 crewbases = [] # list with origin of each duty, which is by assumption the crew base
+destins = []
 uniqueCrewbases = []
+uniqueDestins = []
 overnights = 0 # Number of duties not returning to crewbase
 overnightCosts = 0
 print('\n The (binary) crew pairing problem has the following pairings scheduled:')
@@ -184,10 +186,15 @@ for i in range(len(chosenPairings)):
             overnightCosts += dutyCostsTotal['Overnight'].loc[i]
         if dutyCostsTotal['Origin'].loc[i] not in crewbases:
             uniqueCrewbases.append(dutyCostsTotal['Origin'].loc[i])
+        if dutyCostsTotal['Destination'].loc[i] not in destins:
+            uniqueDestins.append(dutyCostsTotal['Destination'].loc[i])
         crewbases.append(dutyCostsTotal['Origin'].loc[i])
+        destins.append(dutyCostsTotal['Destination'].loc[i])
 
 for i in uniqueCrewbases:
     print(i,'needs',crewbases.count(i),'entire crews')
+for i in uniqueDestins:
+    print(i,'receives',destins.count(i),'entire crews')
 print('NB: a crew consists of 1 captain, 1 first officer and 3 flight attendants')
 print('The Final Objective Value is',m.objVal,',obtained after',k,'iterations, which took [h:mm:ss]:',finished-start)
 print('A total of',len(dutyNumbers),'duties are included, with',overnights,'duties not returning at its crew base, giving hotel costs of MU',overnightCosts)
