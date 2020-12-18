@@ -200,4 +200,4 @@ cost = dutyCostsTotal.loc[dutynrs,'Cost']
 print('Duty #, #flights,first flight, hotelcost, total duty cost')
 for i in range(len(dutynrs)):
     flnr = ast.literal_eval(flightnr.iloc[i])
-    print(dutynrs[i],len(flnr),flnr[0],crewbases[0],hotel.iloc[i],cost.iloc[i])
+    print(dutynrs[i],len(flnr),flnr[0],crewbases[i],hotel.iloc[i],cost.iloc[i])
