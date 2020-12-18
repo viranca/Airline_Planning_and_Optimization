@@ -5,6 +5,8 @@ from gurobipy import Model
 import pandas as pd
 import numpy as np
 
+# Printing author information
+print('Group 26 \nViranca Balsingh 4554000 \nEdward Hyde 4285174 \nDaan Kerstjens 4299418')
 
 """
 =============================================================================

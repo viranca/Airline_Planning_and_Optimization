@@ -17,6 +17,8 @@ fixedSalary = np.array([98,35,15])
 dutyPay = np.array([120,55,18])
 # base = 'LFPG'
 
+# Printing author information
+print('Group 26 \nViranca Balsingh 4554000 \nEdward Hyde 4285174 \nDaan Kerstjens 4299418')
 
 # Importing data, save it as DataFrame
 dfTimetable = pd.read_csv('1_Timetable_Group_26.csv', index_col=0,parse_dates=['Departure Time','Arrival Time'],infer_datetime_format=True)
