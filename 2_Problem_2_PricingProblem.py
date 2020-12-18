@@ -4,12 +4,6 @@ Created on Wed Dec 16 15:02:49 2020
 
 @author: Daan Kerstjens
 """
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec  9 15:56:11 2020
-
-@author: Daan Kerstjens
-"""
 import pandas as pd
 import numpy as np
 import ast
@@ -21,6 +15,9 @@ from gurobipy import GRB
 # Input variables
 timeLimit = 100 # Time limit on the gurobi runtime in seconds, just to prevent an endless loop
 rows = 141 # the first 141 rows of the duty periods contain the single flights
+
+# Printing author information
+print('Group 26 \nViranca Balsingh 4554000 \nEdward Hyde 4285174 \nDaan Kerstjens 4299418')
 
 # Reading data from files
 dutyCostsTotal = pd.read_csv('2_dutyCosts.csv',parse_dates=['Departure','Arrival'],index_col=0)

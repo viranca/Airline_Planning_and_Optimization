@@ -7,6 +7,9 @@ import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as smf
 
+# Printing author information
+print('Group 26 \nViranca Balsingh 4554000 \nEdward Hyde 4285174 \nDaan Kerstjens 4299418')
+
 gen_df = pd.read_csv("1_Assignment1_Problem1_Datasheets_General.csv", sep=";")
 group_df = pd.read_csv("1_Assignment1_Problem1_Datasheets_Group_26.csv", sep=";")
 # print(gen_df)
