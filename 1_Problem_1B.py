@@ -336,6 +336,12 @@ for i in airports:
 #             Aircraft_leasecost[2] * aircraft_type_2_amount + Aircraft_leasecost[3] * aircraft_type_3_amount, 
 #             GRB.LESS_EQUAL, B)    
     
+
+"""
+=============================================================================
+Optimise and print results:
+=============================================================================
+"""
     
 m.update()
 m.write('1_Problem1B_LP.lp')
@@ -346,10 +352,10 @@ m.optimize()
 # m.write("testout.sol")
 status = m.status
 
-# solution = []   
-# for v in m.getVars():
-#       solution.append([v.varName,v.x])
-# print(solution)
+solution = []   
+for v in m.getVars():
+      solution.append([v.varName,v.x])
+print(solution)
 
 
 
@@ -375,3 +381,89 @@ for i in airports:
     for j in airports:
         if z_0[i,j].X >0:
             print(Airports[i], ' to ', Airports[j], z_0[i,j].X, z_1[i,j].X, z_2[i,j].X, z_3[i,j].X)
+ 
+#%%
+"""
+=============================================================================
+Compute performance indicators:
+=============================================================================
+"""
+#compute the utilization of each ac type
+utilization_0 = 0
+z_0_total_hours = 0
+for i in airports:
+    for j in airports:
+        utilization_0 += (((distance[i][j]/Aircraft_speed[0]+Aircraft_TAT[0]*(g_inv[j]))*(z_0[i,j].X)))
+z_0_total_hours += 3 * BT    
+print(utilization_0/z_0_total_hours) 
+
+utilization_1 = 0
+z_1_total_hours = 0
+for i in airports:
+    for j in airports:
+        utilization_1 += (((distance[i][j]/Aircraft_speed[1]+Aircraft_TAT[1]*(g_inv[j]))*(z_1[i,j].X)))
+z_1_total_hours += 1 * BT   
+print(utilization_1/z_1_total_hours)  
+
+utilization_2 = 0
+z_2_total_hours = 0
+for i in airports:
+    for j in airports:
+        utilization_2 += (((distance[i][j]/Aircraft_speed[2]+Aircraft_TAT[2]*(g_inv[j]))*(z_2[i,j].X)))
+z_2_total_hours += 4 * BT   
+print(utilization_2/z_2_total_hours)   
+
+utilization_3 = 0
+z_3_total_hours = 0
+for i in airports:
+    for j in airports:
+        utilization_3 += (((distance[i][j]/Aircraft_speed[3]+Aircraft_TAT[3]*(g_inv[j]))*(z_3[i,j].X)))      
+z_3_total_hours += 0 * BT   
+print(utilization_3)
+print(z_3_total_hours)
+
+
+#%%
+#compute the percentage of filled seats
+a = 0
+b = 0
+for i in airports:
+    for j in airports:
+        a += x[i,j].X
+        for m in airports:
+            a += (w[i,m].X*(1-g[j]))+ (w[m,j].X*(1-g[i]))
+        b += (z_0[i,j].X*Aircraft_seats[0]+z_1[i,j].X*Aircraft_seats[1]+ z_2[i,j].X*Aircraft_seats[2]+z_3[i,j].X*Aircraft_seats[3])*LF
+            
+print(a/b)       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
