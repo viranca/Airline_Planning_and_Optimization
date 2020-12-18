@@ -424,17 +424,17 @@ print(z_3_total_hours)
 
 
 #%%
-#compute the percentage of filled seats
-a = 0
-b = 0
-for i in airports:
-    for j in airports:
-        a += x[i,j].X
-        for m in airports:
-            a += (w[i,m].X*(1-g[j]))+ (w[m,j].X*(1-g[i]))
-        b += (z_0[i,j].X*Aircraft_seats[0]+z_1[i,j].X*Aircraft_seats[1]+ z_2[i,j].X*Aircraft_seats[2]+z_3[i,j].X*Aircraft_seats[3])*LF
+# #compute the percentage of filled seats
+# seats_used = 0
+# seats_available = 0
+# for i in airports:
+#     for j in airports:
+#         seats_used += x[i,j].X
+#         for m in airports:
+#             seats_used += (w[i,m].X*(1-g[j]))+ (w[m,j].X*(1-g[i]))
+#         seats_available += (z_0[i,j].X*Aircraft_seats[0]+z_1[i,j].X*Aircraft_seats[1]+ z_2[i,j].X*Aircraft_seats[2]+z_3[i,j].X*Aircraft_seats[3])*LF
             
-print(a/b)       
+# print(seats_used/seats_available)       
 
 
 
