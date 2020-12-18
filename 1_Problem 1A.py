@@ -7,8 +7,8 @@ import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 import statsmodels.formula.api as smf
 
-gen_df = pd.read_csv("Assignment1_Problem1_Datasheets_General.csv", sep=";")
-group_df = pd.read_csv("Assignment1_Problem1_Datasheets_Group_26.csv", sep=";")
+gen_df = pd.read_csv("1_Assignment1_Problem1_Datasheets_General.csv", sep=";")
+group_df = pd.read_csv("1_Assignment1_Problem1_Datasheets_Group_26.csv", sep=";")
 # print(gen_df)
 # print(group_df)
 
@@ -138,7 +138,8 @@ for i in range(latitudes.size):
 GDP_2020 = np.zeros(shape=(latitudes.size, 1))
 for i in range(latitudes.size):
     GDP_2020[i] = GDP[i, 1] + (2020-2018)*((GDP[i, 1] - GDP[i, 0])/(2018-2015))
-
+print(pop_2020)
+print(GDP_2020)
 '''
 # 1.A.3: Future demand with calibrated gravity model
 '''
@@ -160,7 +161,7 @@ for i in range(latitudes.size):
 Demand_2020.resize(latitudes.size-1, latitudes.size)
 dem2020_df = pd.DataFrame(Demand_2020)
 # dem2020_df.to_excel('dem2020_df.xlsx')
-print(dem2020_df)
+print(dem2020_df.iloc[:5, :5])
 
 # for i in range(latitudes.size):
 #     for j in range(i+1, latitudes.size):
