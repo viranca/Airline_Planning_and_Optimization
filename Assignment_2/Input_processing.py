@@ -109,14 +109,23 @@ costmatrix_ac2.to_csv('costmatrix_ac2.csv')
 #print(costmatrix_ac2)            
 
 
+#%%
+
+"""
+=============================================================================
+Compute a flighttime matrix for each aircraft type at each flight leg.
+=============================================================================
+"""
 
 
+flighttime_ac0 = df_distance/Aircraft_speed[0]
+flighttime_ac0.to_csv('flighttime_ac0.csv')
 
+flighttime_ac1 = df_distance/Aircraft_speed[1]
+flighttime_ac1.to_csv('flighttime_ac1.csv')
 
-
-
-
-
+flighttime_ac2 = df_distance/Aircraft_speed[2]
+flighttime_ac2.to_csv('flighttime_ac2.csv')
 
 
 
