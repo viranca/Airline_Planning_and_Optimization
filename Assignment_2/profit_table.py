@@ -12,6 +12,7 @@ rows = ('LHR','CDG','AMS','FRA','MAD','BCN','MUC','FCO','DUB','ARN','LIS','TXL',
 base = 'CDG'
 capacity = (23000,35000,120000) # Maximum capacity per type
 fleet = [2,2,1] # Maximum a/c per type
+# fleet = [0,0,1]
 timesteps = 1200
 blocktime = 40 # Demand is splitted in timeblocks of 4 hours each
 
@@ -47,6 +48,9 @@ costs.index = rows
 # Making column names for profit table
 columns = np.linspace(0,timesteps,timesteps+1)
 columns = columns.astype(int)
+
+# Making column names for schedule
+columNames = ('Departure','Arrival','Origin','Destination','Cargo','Profit')
 
 """ Function making profit table """
 def profitTable (j,demand,run):
@@ -132,18 +136,20 @@ def schedule(run,best,profits,demand):
     time = 0 # current time
     loc = [base] # list of airports visited, in order
     dep = [] # List of departure times
+    deptest = []
+    arr = [] # List of arrival times
     prof = [0] # List of profit up to current time
     flows = [] # List of cargo weight transported on each leg
-    # prof2 = [] # List of profit of individual legs
+    prof2 = [] # List of profit of individual legs
     
     # Loop through the entire schedule horizon
     while time < timesteps:
         # Only fly if the profit changes between current and next timestep at current location, otherwise keep incrementing time until this is the case
         if profits.at[loc[-1],time] != profits.at[loc[-1],time+1]:
-            dep.append(time) # Departure time is current time
+            dep.append(pd.Timedelta(hours=time/10)) # Departure time is current time
+            # deptest.append(pd.Timedelta(time))
             timeblock = int(np.floor(time/blocktime))+2
             if loc[-1] == base: # In this case, the flight goes from CDG to other airport
-                # b = control[time]
                 loc.append(control[time]) # destination is given by control array
                 # Cost, distance and flighttime depend on destination (these matrices only give hub-spoke values)
                 cost = costs.at[loc[-1],best]
@@ -153,7 +159,6 @@ def schedule(run,best,profits,demand):
                 # Cost, distance and flighttime depend on origin (these matrices only give hub-spoke values)
                 distance = distances.at[loc[-1],'1']
                 cost = costs.at[loc[-1],best]
-                # b = base
                 time += int(flighttime.at[loc[-1],best])
                 loc.append(base)
             
@@ -176,7 +181,8 @@ def schedule(run,best,profits,demand):
             profit = prof[-1] + revenue - cost
             prof.append(profit)
             flows.append(flow)
-            # prof2.append(revenue-cost)
+            prof2.append(revenue-cost)
+            arr.append(pd.Timedelta(hours=time/10))
             
             # The transported weight has to be deducted from the demand. Since in the initial profit table, the route is unknown, this could result in a lower profit, alas.
             if timeblock > 3:
@@ -207,14 +213,18 @@ def schedule(run,best,profits,demand):
     # obj = round([obj0,obj1,obj2][best])
     red = round(obj-profit) # Absolute reduction due to cargo rostered more than once
     redRel = round(red/obj*100,1) # Relative reduction
-    print('The objective value of',round(obj),'was reduced by:',red,'(',redRel,'%) due to demand which had been used double')
+    print('The objective value of',round(obj),'was reduced by:',red,'(',redRel,'%) due to demand which had been used double\n\n')
     demand.to_csv('Demand'+str(run)+'.csv')
+    
+    
+    schedule = pd.DataFrame([dep,arr,loc[:-1],loc[1:],flows,prof2],index=columNames).transpose()
+    schedule.to_csv('schedule'+str(run)+'.csv')
     return demand,flows,loc,dep
 
 
 """ Main script, iterating over the fleet using above functions to calculate profits and make flight schedule """
 # Creating some variables
-run = 0
+run = 1
 demand2 =[]
 flows2 = []
 loc2 = []
@@ -231,17 +241,17 @@ while sum(fleet) > 0:
     
     # Only make calculations for a/c types that are actually available
     if fleet[0] > 0:
-        profits0,control0,obj0 = profitTable(0,demand1)
+        profits0,control0,obj0 = profitTable(0,demand1,run)
         profits.append(profits0)
         control.append(control0)
         obj.append(obj0)
     if fleet[1] > 0:
-        profits1,control1,obj1 = profitTable(1,demand1)
+        profits1,control1,obj1 = profitTable(1,demand1,run)
         profits.append(profits1)
         control.append(control1)
         obj.append(obj1)
     if fleet[2] > 0:
-        profits2,control2,obj2 = profitTable(2,demand1)
+        profits2,control2,obj2 = profitTable(2,demand1,run)
         profits.append(profits2)
         control.append(control2)
         obj.append(obj2)
@@ -258,14 +268,14 @@ while sum(fleet) > 0:
     
     # If there's a profitable option, write it down, and deduct a/c from fleet
     fleet[best] -= 1
-    print('Aircraft type',best,'selected\n\n')
+    print('Aircraft type',best,'selected\n')
     
-    run += 1 # Variable to keep track of order of flight schedules
     demand1,flows1,loc1,dep1 = schedule(run,best,profits,demand)
     # demand2.append(demand1)
     # flows2.append(flows1)
     # loc2.append(loc1)
     # dep2.append(dep1)
+    run += 1 # Variable to keep track of order of flight schedules
 '''
 control_df = pd.DataFrame([control],index=['control'],columns=columns)
 df = profits.append(control_df)
