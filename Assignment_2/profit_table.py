@@ -12,6 +12,7 @@ rows = ['LHR','CDG','AMS','FRA','MAD','BCN','MUC','FCO','DUB','ARN','LIS','TXL',
 base = 'CDG'
 capacity = [23000,35000,120000]
 
+# Loading flighttimes
 flighttime_ac0 = pd.read_csv('flighttime_ac0.csv',index_col=0)
 flighttime_ac0.columns = [0]
 flighttime_ac1 = pd.read_csv('flighttime_ac1.csv',index_col=0)
@@ -21,7 +22,7 @@ flighttime_ac2.columns = [2]
 flighttime = pd.concat([flighttime_ac0,flighttime_ac1, flighttime_ac2],axis=1)
 flighttime.index = rows
 flighttime = np.ceil(10*flighttime)
-flighttime += 5
+flighttime += 5 # adding half an hour for start & landing time
 
 demand = pd.read_csv('Demand26_2.csv',index_col=[0,1],header=None)
 distances = pd.read_csv('distancematrix.csv',index_col=0)
@@ -42,8 +43,8 @@ def profitTable (j):
     profits = pd.DataFrame(index=rows,columns=columns)
     control = ['']*1201
     profits.at[base] = 0 # last column
-    # for i in tqdm(columns):
-    for i in tqdm(range(100)):
+    for i in tqdm(columns):
+    # for i in tqdm(range(100)):
         for airport in rows:
             if i < 1200:
                 if profits.at[airport,1200-i-1] < profits.at[airport,1200-i]:
@@ -88,6 +89,7 @@ def profitTable (j):
 [profits0,control0,obj0] = profitTable(0)
 [profits1,control1,obj1] = profitTable(1)
 [profits2,control2,obj2] = profitTable(2)
+'''
 if obj0 > obj1:
     if obj0 > obj2:
         best = 0
@@ -105,7 +107,11 @@ else:
     else:
         best = 2
         profits = profits2
-        control = control2
+        control = control2'''
+best = [obj0,obj1,obj2].index(max([obj0,1,2]))
+profits = [profits0,profits1,profits2][best]
+control = [control0,control1,control2][best]
+obj = [obj0,obj1,obj2][best]
 print('Aircraft type',best,'selected\n')
 
 control_df = pd.DataFrame([control],index=['control'],columns=columns)
@@ -173,7 +179,7 @@ while time < 1200:
             print('\nEr gaat iets fout\n',flush=True)
     else:
         time += 1
-obj = round([obj0,obj1,obj2][best])
+# obj = round([obj0,obj1,obj2][best])
 red = round(obj-profit)
 redRel = round(red/obj*100,1)
 print('The objective value of',obj,'was reduced by:',red,'(',redRel,'%) due to demand which had been used double')
