@@ -18,6 +18,7 @@ maxRange = (1500,3300,6300) # max Range per a/c type
 # fleet = [0,0,1]
 timesteps = 1200
 blocktime = 40 # Demand is splitted in timeblocks of 4 hours each
+RTK = 0.26 # revenue per kg per kilometer
 
 """ Loading input data """
 # Loading flighttimes, per aircraft type
@@ -111,8 +112,8 @@ def profitTable (j,demand,run):
                         flow = capacity[j]
                     if flowBack > capacity[j]:
                         flowBack = capacity[j]
-                    revenue = distance * 0.26 * flow
-                    revenueBack = distance*0.26*flowBack
+                    revenue = distance * RTK * flow
+                    revenueBack = distance*RTK*flowBack
                     
                     # Profit at time of departure at hub, is profit at current time at current airport plus revenue made minus flying costs
                     profit = profits.at[base,timesteps-i] + revenue - cost
@@ -182,7 +183,7 @@ def schedule(run,best,profits,demand):
                 '''
             if flow > capacity[best]:
                 flow = capacity[best]
-            revenue = distance * 0.26 * flow
+            revenue = distance * RTK * flow
             profit = prof[-1] + revenue - cost
             prof.append(profit)
             flows.append(flow)
