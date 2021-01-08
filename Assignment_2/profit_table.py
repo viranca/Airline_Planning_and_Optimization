@@ -12,6 +12,9 @@ rows = ('LHR','CDG','AMS','FRA','MAD','BCN','MUC','FCO','DUB','ARN','LIS','TXL',
 base = 'CDG'
 capacity = (23000,35000,120000) # Maximum capacity per type
 fleet = [2,2,1] # Maximum a/c per type
+TAT = np.array([90,120,150])/6 # Turn Around Time
+SLT = 5 # Additional time for start and landing
+maxRange = (1500,3300,6300) # max Range per a/c type
 # fleet = [0,0,1]
 timesteps = 1200
 blocktime = 40 # Demand is splitted in timeblocks of 4 hours each
@@ -27,7 +30,8 @@ flighttime_ac2.columns = [2]
 flighttime = pd.concat([flighttime_ac0,flighttime_ac1, flighttime_ac2],axis=1)
 flighttime.index = rows
 flighttime = np.ceil(10*flighttime)
-flighttime += 5 # adding half an hour for start & landing time
+flighttime += SLT # adding half an hour for start & landing time
+flighttime += TAT # Adding the turn-around-time to the end of each flight
 
 # Loading initial demand
 demand = pd.read_csv('Demand0.csv',index_col=[0,1],header=None)
@@ -80,6 +84,8 @@ def profitTable (j,demand,run):
                     timeblock = int(np.floor(time/blocktime))+2 # The total period is devided into 30 timeblocks, for which the demand is known. The value is incremented by 2, due to the way it is saved (hence timeblock 0 contains the first 4 hours of the first day)
                     distance = distances.at[airport,'1']
                     cost = costs.at[airport,j]
+                    if distance > maxRange[j]:
+                        cost *= 10**6 # Adding a big penalty preventing the scheduling of out of range airports
                     
                     # The flow (cargo weight) that could be transported consist of all demand at departure time timeblock, and 20% of the 2 timeblocks before. To prevent index errors, 
                     # the first 2 timeblocks are hardcoded to zero, since the last few and first few timeblocks have 0 demand anyway
@@ -136,7 +142,6 @@ def schedule(run,best,profits,demand):
     time = 0 # current time
     loc = [base] # list of airports visited, in order
     dep = [] # List of departure times
-    deptest = []
     arr = [] # List of arrival times
     prof = [0] # List of profit up to current time
     flows = [] # List of cargo weight transported on each leg
@@ -182,7 +187,8 @@ def schedule(run,best,profits,demand):
             prof.append(profit)
             flows.append(flow)
             prof2.append(revenue-cost)
-            arr.append(pd.Timedelta(hours=time/10))
+            # print()
+            arr.append(pd.Timedelta(hours=(time-TAT[best])/10))
             
             # The transported weight has to be deducted from the demand. Since in the initial profit table, the route is unknown, this could result in a lower profit, alas.
             if timeblock > 3:
@@ -218,7 +224,7 @@ def schedule(run,best,profits,demand):
     
     
     schedule = pd.DataFrame([dep,arr,loc[:-1],loc[1:],flows,prof2],index=columNames).transpose()
-    schedule.to_csv('schedule'+str(run)+'.csv')
+    schedule.to_csv('schedule'+str(run)+'_ac'+str(best)+'.csv')
     return demand,flows,loc,dep
 
 
@@ -276,10 +282,4 @@ while sum(fleet) > 0:
     # loc2.append(loc1)
     # dep2.append(dep1)
     run += 1 # Variable to keep track of order of flight schedules
-'''
-control_df = pd.DataFrame([control],index=['control'],columns=columns)
-df = profits.append(control_df)
-df.to_csv('profits.csv')
-'''
-
 
