@@ -7,18 +7,20 @@ Created on Tue Dec 22 12:10:14 2020
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from datetime import timedelta
 
 rows = ('LHR','CDG','AMS','FRA','MAD','BCN','MUC','FCO','DUB','ARN','LIS','TXL','HEL','WAW','EDI','OTP','HER','KEF','PMO','FNC')
 base = 'CDG'
 capacity = (23000,35000,120000) # Maximum capacity per type
 fleet = [2,2,1] # Maximum a/c per type
-TAT = np.array([90,120,150])/6 # Turn Around Time
+TAT = np.array([90,120,150])/6 # Turn Around Time (in timesteps of 6 minutes)
 SLT = 5 # Additional time for start and landing
 maxRange = (1500,3300,6300) # max Range per a/c type
 # fleet = [0,0,1]
-timesteps = 1200
+timesteps = 1200 # Timesteps of 6 minutes, totalling 120 hrs = 5 days
 blocktime = 40 # Demand is splitted in timeblocks of 4 hours each
-RTK = 0.26 # revenue per kg per kilometer
+RTK = 0.26/1000 # revenue per kg per kilometer
+leaseCost = [2143,4857,11429]
 
 """ Loading input data """
 # Loading flighttimes, per aircraft type
@@ -55,7 +57,7 @@ columns = np.linspace(0,timesteps,timesteps+1)
 columns = columns.astype(int)
 
 # Making column names for schedule
-columNames = ('Departure','Arrival','Origin','Destination','Cargo','Profit')
+columNames = ('Departure Day','Departure Time','Arrival Day','Arrival Time','Origin','Destination','Cargo','Profit')
 
 """ Function making profit table """
 def profitTable (j,demand,run):
@@ -128,6 +130,7 @@ def profitTable (j,demand,run):
                         profits.loc[base,:time] = profitBack
                         control[time] = airport # add name of airport to control sequence
     obj = profits.at[base,0] # The objective (maximum profit at time 0 at CDG)
+    obj -= leaseCost[j] # Lease Costs have to be deducted from total objective
     
     # Write a csv of profit table, including control sequence
     control_df = pd.DataFrame([control],index=['control'],columns=columns)
@@ -142,9 +145,11 @@ def schedule(run,best,profits,demand):
     # Set initial values for the schedule
     time = 0 # current time
     loc = [base] # list of airports visited, in order
-    dep = [] # List of departure times
-    arr = [] # List of arrival times
-    prof = [0] # List of profit up to current time
+    depDay = [] # List of departure days
+    depTime = [] # List of departure times
+    arrDay = [] # List of arrival days
+    arrTime = [] # List of arrival times
+    prof = [-leaseCost[best]] # List of profit up to current time
     flows = [] # List of cargo weight transported on each leg
     prof2 = [] # List of profit of individual legs
     
@@ -152,7 +157,9 @@ def schedule(run,best,profits,demand):
     while time < timesteps:
         # Only fly if the profit changes between current and next timestep at current location, otherwise keep incrementing time until this is the case
         if profits.at[loc[-1],time] != profits.at[loc[-1],time+1]:
-            dep.append(pd.Timedelta(hours=time/10)) # Departure time is current time
+            dep = timedelta(hours=time/10) # Departure time is current time
+            depDay.append(dep.days) 
+            depTime.append(timedelta(seconds=dep.seconds))
             # deptest.append(pd.Timedelta(time))
             timeblock = int(np.floor(time/blocktime))+2
             if loc[-1] == base: # In this case, the flight goes from CDG to other airport
@@ -189,7 +196,9 @@ def schedule(run,best,profits,demand):
             flows.append(flow)
             prof2.append(revenue-cost)
             # print()
-            arr.append(pd.Timedelta(hours=(time-TAT[best])/10))
+            arr = timedelta(hours=(time-TAT[best])/10) # Arrival time, since the TAT has been added to the flighttimes, this is deducted here for display in schedule
+            arrDay.append(arr.days)
+            arrTime.append(timedelta(seconds=arr.seconds))
             
             # The transported weight has to be deducted from the demand. Since in the initial profit table, the route is unknown, this could result in a lower profit, alas.
             if timeblock > 3:
@@ -224,9 +233,9 @@ def schedule(run,best,profits,demand):
     demand.to_csv('Demand'+str(run)+'.csv')
     
     
-    schedule = pd.DataFrame([dep,arr,loc[:-1],loc[1:],flows,prof2],index=columNames).transpose()
+    schedule = pd.DataFrame([depDay,depTime,arrDay,arrTime,loc[:-1],loc[1:],flows,prof2],index=columNames).transpose()
     schedule.to_csv('schedule'+str(run)+'_ac'+str(best)+'.csv')
-    return demand,flows,loc,dep
+    return demand,flows,loc
 
 
 """ Main script, iterating over the fleet using above functions to calculate profits and make flight schedule """
@@ -245,6 +254,7 @@ while sum(fleet) > 0:
     profits=[] # (empty) List of profit tables
     control=[] # (empty) list of control arrays
     obj=[] # (empty) list of objective found
+    actype = [] # (empty) list of a/c types considered
     
     # Only make calculations for a/c types that are actually available
     if fleet[0] > 0:
@@ -252,32 +262,37 @@ while sum(fleet) > 0:
         profits.append(profits0)
         control.append(control0)
         obj.append(obj0)
+        actype.append(0)
     if fleet[1] > 0:
         profits1,control1,obj1 = profitTable(1,demand1,run)
         profits.append(profits1)
         control.append(control1)
         obj.append(obj1)
+        actype.append(1)
     if fleet[2] > 0:
         profits2,control2,obj2 = profitTable(2,demand1,run)
         profits.append(profits2)
         control.append(control2)
         obj.append(obj2)
+        actype.append(2)
         
     # Selecting the a/c type with the highest profit (greedy model), and throwing out the other variables
     best = obj.index(max(obj))
     profits = profits[best]
     control = control[best]
     obj = obj[best]
+    actype = actype[best]
     
     if obj < 0:
         print('There is no profitable option left')
         break
     
     # If there's a profitable option, write it down, and deduct a/c from fleet
-    fleet[best] -= 1
-    print('Aircraft type',best,'selected\n')
+    fleet[actype] -= 1
+    print('Aircraft type',actype,'selected\n')
     
-    demand1,flows1,loc1,dep1 = schedule(run,best,profits,demand)
+    demand1,flows1,loc1 = schedule(run,actype,profits,demand1)
+    # schedule(run,actype,profits,demand)
     # demand2.append(demand1)
     # flows2.append(flows1)
     # loc2.append(loc1)
