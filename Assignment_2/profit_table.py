@@ -9,48 +9,62 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import timedelta
 
-rows = ('LHR','CDG','AMS','FRA','MAD','BCN','MUC','FCO','DUB','ARN','LIS','TXL','HEL','WAW','EDI','OTP','HER','KEF','PMO','FNC')
 base = 'CDG'
-capacity = (23000,35000,120000) # Maximum capacity per type
-fleet = [2,2,1] # Maximum a/c per type
-TAT = np.array([90,120,150])/6 # Turn Around Time (in timesteps of 6 minutes)
+tf = 6 # minutes in a timeframe
 SLT = 5 # Additional time for start and landing
-maxRange = (1500,3300,6300) # max Range per a/c type
-# fleet = [0,0,1]
 timesteps = 1200 # Timesteps of 6 minutes, totalling 120 hrs = 5 days
 blocktime = 40 # Demand is splitted in timeblocks of 4 hours each
 RTK = 0.26/1000 # revenue per kg per kilometer
-leaseCost = [2143,4857,11429]
 
 """ Loading input data """
+# List all airports
+airports = pd.read_hdf('FleetType.h5','airports')
+rows = tuple(airports.iloc[1:].values) # IATA code of all airports
+
+# First load information regarding a/c types
+FleetType = pd.read_hdf('FleetType.h5','fleetType')
+capacity = tuple(FleetType.loc['Cargo capacity [kg]'].values)
+TAT = tuple(FleetType.loc['Average TAT [min]'].values/tf) # Turn Around Time (in timesteps of 6 minutes)
+maxRange = tuple(FleetType.loc['Maximum Range [km]'].values) # max Range per a/c type
+leaseCost = tuple(FleetType.loc['Lease Cost [€]'].values)
+fleet = FleetType.loc['Fleet'].values
+
 # Loading flighttimes, per aircraft type
-flighttime_ac0 = pd.read_csv('flighttime_ac0.csv',index_col=0)
-flighttime_ac0.columns = [0]
-flighttime_ac1 = pd.read_csv('flighttime_ac1.csv',index_col=0)
-flighttime_ac1.columns = [1]
-flighttime_ac2 = pd.read_csv('flighttime_ac2.csv',index_col=0)
-flighttime_ac2.columns = [2]
-flighttime = pd.concat([flighttime_ac0,flighttime_ac1, flighttime_ac2],axis=1)
-flighttime.index = rows
-flighttime = np.ceil(10*flighttime)
-flighttime += SLT # adding half an hour for start & landing time
-flighttime += TAT # Adding the turn-around-time to the end of each flight
+def loadFlighttimes():
+    flighttime_ac0 = pd.read_csv('flighttime_ac0.csv',index_col=0)
+    flighttime_ac0.columns = [0]
+    flighttime_ac1 = pd.read_csv('flighttime_ac1.csv',index_col=0)
+    flighttime_ac1.columns = [1]
+    flighttime_ac2 = pd.read_csv('flighttime_ac2.csv',index_col=0)
+    flighttime_ac2.columns = [2]
+    flighttime = pd.concat([flighttime_ac0,flighttime_ac1, flighttime_ac2],axis=1)
+    flighttime.index = rows
+    flighttime = np.ceil(10*flighttime)
+    flighttime += SLT # adding half an hour for start & landing time
+    flighttime += TAT # Adding the turn-around-time to the end of each flight
+    return flighttime
+flighttime = loadFlighttimes()
 
 # Loading initial demand
-demand = pd.read_csv('Demand0.csv',index_col=[0,1],header=None)
+demand1 = pd.read_csv('Demand0.csv',index_col=[0,1],header=None)
 # Loading distance matrix
 distances = pd.read_csv('distancematrix.csv',index_col=0)
 distances.index = rows #giving airport names as index
 
 # Loading costs of every flight, per aircraft type
-costs_ac0 = pd.read_csv('costmatrix_ac0.csv',index_col=0)
-costs_ac0.columns=[0]
-costs_ac1 = pd.read_csv('costmatrix_ac1.csv',index_col=0)
-costs_ac1.columns=[1]
-costs_ac2 = pd.read_csv('costmatrix_ac2.csv',index_col=0)
-costs_ac2.columns=[2]
-costs = pd.concat([costs_ac0,costs_ac1,costs_ac2],1)
-costs.index = rows
+def loadCosts():
+    costs_ac0 = pd.read_csv('costmatrix_ac0.csv',index_col=0)
+    costs_ac0.columns=[0]
+    costs_ac1 = pd.read_csv('costmatrix_ac1.csv',index_col=0)
+    costs_ac1.columns=[1]
+    costs_ac2 = pd.read_csv('costmatrix_ac2.csv',index_col=0)
+    costs_ac2.columns=[2]
+    costs = pd.concat([costs_ac0,costs_ac1,costs_ac2],1)
+    costs.index = rows
+    return costs
+costs = loadCosts()
+
+del FleetType,airports,loadFlighttimes,loadCosts # Removing from memory, since these are not used anymore
 
 # Making column names for profit table
 columns = np.linspace(0,timesteps,timesteps+1)
@@ -245,7 +259,7 @@ demand2 =[]
 flows2 = []
 loc2 = []
 dep2 = []
-demand1 = demand.copy()
+# demand1 = demand.copy()
 
 # Calculating all profit tables and flight schedule as long as there're unused aircraft left
 while sum(fleet) > 0:
