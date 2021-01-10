@@ -39,12 +39,6 @@ df_distance.to_csv('distancematrix.csv')
 distance = np.array(df_distance)
 
 
-
-with open('Demand26.csv', 'r') as f:
-    demand_df = pd.read_csv(f, sep=';', header=0)
-demand = np.array(demand_df)
-
-
             
 
 """
