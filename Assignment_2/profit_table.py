@@ -248,6 +248,7 @@ def schedule(run,best,profits,demand):
     
     
     schedule = pd.DataFrame([depDay,depTime,arrDay,arrTime,loc[:-1],loc[1:],flows,prof2],index=columNames).transpose()
+    schedule[[columNames[0],columNames[2]]] += 1 # Start at day 1 instead of day 0
     schedule.to_csv('schedule'+str(run)+'_ac'+str(best)+'.csv')
     return demand,flows,loc
 
