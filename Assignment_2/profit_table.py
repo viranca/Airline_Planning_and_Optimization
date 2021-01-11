@@ -19,7 +19,9 @@ RTK = 0.26/1000 # revenue per kg per kilometer
 """ Loading input data """
 # List all airports
 airports = pd.read_hdf('FleetType.h5','airports')
-rows = tuple(airports.iloc[1:].values) # IATA code of all airports
+rows = tuple(airports['IATA code'].values) # IATA code of all airports
+rwy = airports['Runway (m)'] # Runway lengths
+rwy.index = rows
 
 # First load information regarding a/c types
 FleetType = pd.read_hdf('FleetType.h5','fleetType')
@@ -28,6 +30,7 @@ TAT = tuple(FleetType.loc['Average TAT [min]'].values/tf) # Turn Around Time (in
 maxRange = tuple(FleetType.loc['Maximum Range [km]'].values) # max Range per a/c type
 leaseCost = tuple(FleetType.loc['Lease Cost [€]'].values)
 fleet = FleetType.loc['Fleet'].values
+minRwy = tuple(FleetType.loc['Runway Required [m]'].values)
 
 # Loading flighttimes, per aircraft type
 def loadFlighttimes():
@@ -101,8 +104,11 @@ def profitTable (j,demand,run):
                     timeblock = int(np.floor(time/blocktime))+2 # The total period is devided into 30 timeblocks, for which the demand is known. The value is incremented by 2, due to the way it is saved (hence timeblock 0 contains the first 4 hours of the first day)
                     distance = distances.at[airport,'1']
                     cost = costs.at[airport,j]
+                    
                     if distance > maxRange[j]:
                         cost *= 10**6 # Adding a big penalty preventing the scheduling of out of range airports
+                    if rwy[airport] < minRwy[j]:
+                        cost *= 10**6 # Adding a big penalty preventing the scheudling to/from airport with a too short runway (NB. Superfluous check with our dataset, all rwys are long enough)
                     
                     # The flow (cargo weight) that could be transported consist of all demand at departure time timeblock, and 20% of the 2 timeblocks before. To prevent index errors, 
                     # the first 2 timeblocks are hardcoded to zero, since the last few and first few timeblocks have 0 demand anyway
