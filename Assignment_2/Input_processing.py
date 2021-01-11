@@ -55,7 +55,8 @@ C_X_0 = Aircraft_fixed_cost[0]
 #time-based cost in hours
 c_T_0 = Aircraft_hourly_cost[0]
 V_0 = Aircraft_speed[0]
-C_T_0 = c_T_0 * (df_distance / V_0)
+C_T_0 = c_T_0 * ((df_distance / V_0) + 0.5)
+# C_T_0 = c_T_0 * (df_distance / V_0)
 #fuel cost
 c_F_0 = Aircraft_fuel_parameter[0]
 f = 1.42
@@ -68,7 +69,8 @@ C_X_1 = Aircraft_fixed_cost[1]
 #time-based cost
 c_T_1 = Aircraft_hourly_cost[1]
 V_1 = Aircraft_speed[1]
-C_T_1 = c_T_1 * (df_distance / V_1)
+C_T_1 = c_T_1 * ((df_distance / V_1) + 0.5)
+# C_T_1 = c_T_1 * (df_distance / V_1)
 #fuel cost
 c_F_1 = Aircraft_fuel_parameter[1]
 f = 1.42
@@ -81,7 +83,8 @@ C_X_2 = Aircraft_fixed_cost[2]
 #time-based cost
 c_T_2 = Aircraft_hourly_cost[2]
 V_2 = Aircraft_speed[2]
-C_T_2 = c_T_2 * (df_distance / V_2)
+C_T_2 = c_T_2 * ((df_distance / V_2) + 0.5)
+# C_T_2 = c_T_2 * (df_distance / V_2)
 #fuel cost
 c_F_2 = Aircraft_fuel_parameter[2]
 f = 1.42
