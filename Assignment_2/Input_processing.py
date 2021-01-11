@@ -32,6 +32,8 @@ Aircraft_fuel_parameter = [2.5, 5, 9.5]
 demand and distance for every flight leg:
 =============================================================================
 """
+
+
 with open('1_distance_df.csv', 'r') as f:
     df_distance = pd.read_csv(f, sep=',', header=0)
 df_distance = df_distance['1']
