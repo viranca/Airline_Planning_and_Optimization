@@ -169,7 +169,7 @@ def schedule(run,best,profits,demand):
     depTime = [] # List of departure times
     arrDay = [] # List of arrival days
     arrTime = [] # List of arrival times
-    prof = [] # List of profit up to current time
+    prof = [0] # List of profit up to current time
     flows = [] # List of cargo weight transported on each leg
     prof2 = [] # List of profit of individual legs
     
