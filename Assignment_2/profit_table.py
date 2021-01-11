@@ -28,17 +28,17 @@ FleetType = pd.read_hdf('FleetType.h5','fleetType')
 capacity = tuple(FleetType.loc['Cargo capacity [kg]'].values)
 TAT = tuple(FleetType.loc['Average TAT [min]'].values/tf) # Turn Around Time (in timesteps of 6 minutes)
 maxRange = tuple(FleetType.loc['Maximum Range [km]'].values) # max Range per a/c type
-leaseCost = tuple(FleetType.loc['Lease Cost [€]'].values)
+# leaseCost = tuple(FleetType.loc['Lease Cost [€]'].values)
 fleet = FleetType.loc['Fleet'].values
 minRwy = tuple(FleetType.loc['Runway Required [m]'].values)
 
 # Loading flighttimes, per aircraft type
 def loadFlighttimes():
-    flighttime_ac0 = pd.read_csv('flighttime_ac0.csv',index_col=0)
+    flighttime_ac0 = pd.read_csv('flighttime_ac0.csv',index_col=0,header=None)
     flighttime_ac0.columns = [0]
-    flighttime_ac1 = pd.read_csv('flighttime_ac1.csv',index_col=0)
+    flighttime_ac1 = pd.read_csv('flighttime_ac1.csv',index_col=0,header=None)
     flighttime_ac1.columns = [1]
-    flighttime_ac2 = pd.read_csv('flighttime_ac2.csv',index_col=0)
+    flighttime_ac2 = pd.read_csv('flighttime_ac2.csv',index_col=0,header=None)
     flighttime_ac2.columns = [2]
     flighttime = pd.concat([flighttime_ac0,flighttime_ac1, flighttime_ac2],axis=1)
     flighttime.index = rows
@@ -51,16 +51,16 @@ flighttime = loadFlighttimes()
 # Loading initial demand
 demand1 = pd.read_csv('Demand0.csv',index_col=[0,1],header=None)
 # Loading distance matrix
-distances = pd.read_csv('distancematrix.csv',index_col=0)
+distances = pd.read_csv('distancematrix.csv',index_col=0,header=None)
 distances.index = rows #giving airport names as index
 
 # Loading costs of every flight, per aircraft type
 def loadCosts():
-    costs_ac0 = pd.read_csv('costmatrix_ac0.csv',index_col=0)
+    costs_ac0 = pd.read_csv('costmatrix_ac0.csv',index_col=0,header=None)
     costs_ac0.columns=[0]
-    costs_ac1 = pd.read_csv('costmatrix_ac1.csv',index_col=0)
+    costs_ac1 = pd.read_csv('costmatrix_ac1.csv',index_col=0,header=None)
     costs_ac1.columns=[1]
-    costs_ac2 = pd.read_csv('costmatrix_ac2.csv',index_col=0)
+    costs_ac2 = pd.read_csv('costmatrix_ac2.csv',index_col=0,header=None)
     costs_ac2.columns=[2]
     costs = pd.concat([costs_ac0,costs_ac1,costs_ac2],1)
     costs.index = rows
@@ -102,7 +102,7 @@ def profitTable (j,demand,run):
                 if time > 0:
                     # timeblock (departing time), distance and cost are independent on direction of flight:
                     timeblock = int(np.floor(time/blocktime))+2 # The total period is devided into 30 timeblocks, for which the demand is known. The value is incremented by 2, due to the way it is saved (hence timeblock 0 contains the first 4 hours of the first day)
-                    distance = distances.at[airport,'1']
+                    distance = distances.at[airport,1]
                     cost = costs.at[airport,j]
                     
                     if distance > maxRange[j]:
@@ -150,7 +150,7 @@ def profitTable (j,demand,run):
                         profits.loc[base,:time] = profitBack
                         control[time] = airport # add name of airport to control sequence
     obj = profits.at[base,0] # The objective (maximum profit at time 0 at CDG)
-    obj -= leaseCost[j] # Lease Costs have to be deducted from total objective
+    # obj -= leaseCost[j] # Lease Costs have to be deducted from total objective
     
     # Write a csv of profit table, including control sequence
     control_df = pd.DataFrame([control],index=['control'],columns=columns)
@@ -169,7 +169,7 @@ def schedule(run,best,profits,demand):
     depTime = [] # List of departure times
     arrDay = [] # List of arrival days
     arrTime = [] # List of arrival times
-    prof = [-leaseCost[best]] # List of profit up to current time
+    prof = [] # List of profit up to current time
     flows = [] # List of cargo weight transported on each leg
     prof2 = [] # List of profit of individual legs
     
@@ -186,11 +186,11 @@ def schedule(run,best,profits,demand):
                 loc.append(control[time]) # destination is given by control array
                 # Cost, distance and flighttime depend on destination (these matrices only give hub-spoke values)
                 cost = costs.at[loc[-1],best]
-                distance = distances.at[loc[-1],'1']
+                distance = distances.at[loc[-1],1]
                 time += int(flighttime.at[control[time],best])
             else:
                 # Cost, distance and flighttime depend on origin (these matrices only give hub-spoke values)
-                distance = distances.at[loc[-1],'1']
+                distance = distances.at[loc[-1],1]
                 cost = costs.at[loc[-1],best]
                 time += int(flighttime.at[loc[-1],best])
                 loc.append(base)
